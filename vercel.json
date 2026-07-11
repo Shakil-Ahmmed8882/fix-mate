@@ -1,12 +1,9 @@
 {
     "version": 2,
-    "buildCommand": "node scripts/build-vercel.mjs",
-    "functions": {
-        "api/index.js": {
-            "maxDuration": 30
-        }
-    },
-    "rewrites": [
-        { "source": "/(.*)", "destination": "/api/index" }
+    "builds": [
+        { "src": "api/_entry.ts", "use": "@vercel/node" }
+    ],
+    "routes": [
+        { "src": "/(.*)", "dest": "/api/_entry.ts" }
     ]
 }
