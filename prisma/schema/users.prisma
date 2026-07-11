@@ -1,0 +1,37 @@
+model User {
+  id           String       @id @default(uuid())
+  name         String       @db.VarChar(255)
+  email        String       @unique
+  password     String       @db.VarChar(255)
+  phone        String?      @db.VarChar(20)
+  role         Role         @default(CUSTOMER)
+  activeStatus ActiveStatus @default(ACTIVE)
+
+  profile           Profile?
+  technicianProfile TechnicianProfile?
+
+  servicesOffered      Service[]
+  bookingsAsCustomer   Booking[] @relation("CustomerBookings")
+  bookingsAsTechnician Booking[] @relation("TechnicianBookings")
+  reviewsWritten       Review[]  @relation("ReviewAuthor")
+  reviewsReceived      Review[]  @relation("ReviewedTechnician")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Profile {
+  id           String  @id @default(uuid())
+  userId       String  @unique
+  bio          String?
+  profilePhoto String?
+  address      String?
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("profiles")
+}
