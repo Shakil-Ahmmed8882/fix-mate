@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
-import { catchAsync } from "../../utils/catchAsync";
-import { sendResponse } from "../../utils/sendResponse";
-import { TechnicianManagementServices } from "./technicianManagement.services";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { sendResponse } from "../../utils/sendResponse.js";
+import { TechnicianManagementServices } from "./technicianManagement.services.js";
 
 const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
     const profile = await TechnicianManagementServices.updateMyProfileIntoDB(req.user!.userId, req.body);

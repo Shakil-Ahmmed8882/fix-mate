@@ -1,6 +1,6 @@
-import { prisma } from "../../lib/prisma";
-import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder";
-import type { ICategoryQuery } from "./category.interface";
+import { prisma } from "../../lib/prisma.js";
+import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder.js";
+import type { ICategoryQuery } from "./category.interface.js";
 
 const getAllCategoriesFromDB = async (query: ICategoryQuery) => {
     const { where, skip, take, orderBy, page, limit } = buildPrismaQuery(

@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
-import { prisma } from "../../lib/prisma";
+import { prisma } from "../../lib/prisma.js";
 import config from "../../config/index.js";
-import { AppError } from "../../utils/AppError";
-import type { IUpdatePassword, IUpdateProfile, IUser } from "./users.interface";
+import { AppError } from "../../utils/AppError.js";
+import type { IUpdatePassword, IUpdateProfile, IUser } from "./users.interface.js";
 
 const registerUserIntoDB = async (userData: IUser) => {
     const { name, email, password, phone, profilePhoto, role } = userData;

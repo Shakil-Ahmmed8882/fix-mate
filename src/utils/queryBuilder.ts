@@ -1,4 +1,4 @@
-import type { TMeta } from "./sendResponse";
+import type { TMeta } from "./sendResponse.js";
 
 /**
  * Reusable query builder for list endpoints (pagination + sorting + search + filters).

@@ -1,6 +1,6 @@
-import { prisma } from "../../lib/prisma";
-import { AppError } from "../../utils/AppError";
-import type { ICreateReview } from "./review.interface";
+import { prisma } from "../../lib/prisma.js";
+import { AppError } from "../../utils/AppError.js";
+import type { ICreateReview } from "./review.interface.js";
 
 const createReviewIntoDB = async (customerId: string, payload: ICreateReview) => {
     const { bookingId, rating, comment } = payload;

@@ -1,7 +1,7 @@
-import { prisma } from "../../lib/prisma";
-import { AppError } from "../../utils/AppError";
-import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder";
-import type { ICreateBooking, IBookingQuery } from "./booking.interface";
+import { prisma } from "../../lib/prisma.js";
+import { AppError } from "../../utils/AppError.js";
+import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder.js";
+import type { ICreateBooking, IBookingQuery } from "./booking.interface.js";
 
 const bookingInclude = {
     service: { include: { category: true } },

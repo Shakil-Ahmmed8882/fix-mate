@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
-import { catchAsync } from "../../utils/catchAsync";
-import { sendResponse } from "../../utils/sendResponse";
-import { ServiceServices } from "./service.services";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { sendResponse } from "../../utils/sendResponse.js";
+import { ServiceServices } from "./service.services.js";
 
 const getAllServices = catchAsync(async (req: Request, res: Response) => {
     const { data, meta } = await ServiceServices.getAllServicesFromDB(req.query as Record<string, string>);

@@ -1,10 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import type { JwtPayload } from "jsonwebtoken";
 import config from "../config/index.js";
-import { prisma } from "../lib/prisma";
-import { verifyToken } from "../utils/jwt";
-import { AppError } from "../utils/AppError";
-import type { Role } from "../../generated/prisma/client";
+import { prisma } from "../lib/prisma.js";
+import { verifyToken } from "../utils/jwt.js";
+import { AppError } from "../utils/AppError.js";
+import type { Role } from "../../generated/prisma/client.js";
 
 // Make `req.user` available across the app without type errors.
 declare global {

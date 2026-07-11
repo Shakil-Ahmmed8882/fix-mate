@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
-import { prisma } from "../../lib/prisma";
-import { AppError } from "../../utils/AppError";
+import { prisma } from "../../lib/prisma.js";
+import { AppError } from "../../utils/AppError.js";
 
 export const handleCheckoutSessionCompleted = async (session: Stripe.Checkout.Session) => {
     const bookingId = session.metadata?.bookingId;

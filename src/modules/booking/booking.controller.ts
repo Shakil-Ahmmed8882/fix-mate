@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
-import { catchAsync } from "../../utils/catchAsync";
-import { sendResponse } from "../../utils/sendResponse";
-import { BookingServices } from "./booking.services";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { sendResponse } from "../../utils/sendResponse.js";
+import { BookingServices } from "./booking.services.js";
 
 const createBooking = catchAsync(async (req: Request, res: Response) => {
     const booking = await BookingServices.createBookingIntoDB(req.user!.userId, req.body);

@@ -1,10 +1,10 @@
 import bcrypt from "bcryptjs";
 import type { SignOptions } from "jsonwebtoken";
-import { prisma } from "../../lib/prisma";
+import { prisma } from "../../lib/prisma.js";
 import config from "../../config/index.js";
-import { createToken, verifyToken } from "../../utils/jwt";
-import { AppError } from "../../utils/AppError";
-import type { ILoginUser } from "./auth.interface";
+import { createToken, verifyToken } from "../../utils/jwt.js";
+import { AppError } from "../../utils/AppError.js";
+import type { ILoginUser } from "./auth.interface.js";
 
 const loginUser = async (payload: ILoginUser) => {
     const { email, password } = payload;

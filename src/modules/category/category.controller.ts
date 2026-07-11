@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
-import { catchAsync } from "../../utils/catchAsync";
-import { sendResponse } from "../../utils/sendResponse";
-import { CategoryServices } from "./category.services";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { sendResponse } from "../../utils/sendResponse.js";
+import { CategoryServices } from "./category.services.js";
 
 const getAllCategories = catchAsync(async (req: Request, res: Response) => {
     const { data, meta } = await CategoryServices.getAllCategoriesFromDB(req.query as Record<string, string>);

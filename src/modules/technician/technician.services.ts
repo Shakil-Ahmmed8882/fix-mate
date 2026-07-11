@@ -1,7 +1,7 @@
-import { prisma } from "../../lib/prisma";
-import { AppError } from "../../utils/AppError";
-import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder";
-import type { ITechnicianQuery } from "./technician.interface";
+import { prisma } from "../../lib/prisma.js";
+import { AppError } from "../../utils/AppError.js";
+import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder.js";
+import type { ITechnicianQuery } from "./technician.interface.js";
 
 const technicianListInclude = {
     profile: true,

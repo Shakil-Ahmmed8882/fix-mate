@@ -1,7 +1,7 @@
-import { prisma } from "../../lib/prisma";
-import { AppError } from "../../utils/AppError";
-import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder";
-import type { IServiceQuery } from "./service.interface";
+import { prisma } from "../../lib/prisma.js";
+import { AppError } from "../../utils/AppError.js";
+import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder.js";
+import type { IServiceQuery } from "./service.interface.js";
 
 const serviceListInclude = {
     category: true,

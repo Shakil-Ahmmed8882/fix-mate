@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
-import { catchAsync } from "../../utils/catchAsync";
-import { sendResponse } from "../../utils/sendResponse";
-import { AppError } from "../../utils/AppError";
-import { PaymentServices } from "./payment.services";
+import { catchAsync } from "../../utils/catchAsync.js";
+import { sendResponse } from "../../utils/sendResponse.js";
+import { AppError } from "../../utils/AppError.js";
+import { PaymentServices } from "./payment.services.js";
 
 const createPayment = catchAsync(async (req: Request, res: Response) => {
     const result = await PaymentServices.createPaymentIntoDB(req.user!.userId, req.body);

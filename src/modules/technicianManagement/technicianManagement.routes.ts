@@ -1,13 +1,13 @@
 import { Router } from "express";
-import { technicianManagementController } from "./technicianManagement.controller";
-import { auth } from "../../middlewares/auth.middleware";
-import { validateRequest } from "../../middlewares/validateRequest.middleware";
-import { Role } from "../../../generated/prisma/enums";
+import { technicianManagementController } from "./technicianManagement.controller.js";
+import { auth } from "../../middlewares/auth.middleware.js";
+import { validateRequest } from "../../middlewares/validateRequest.middleware.js";
+import { Role } from "../../../generated/prisma/enums.js";
 import {
     updateAvailabilityValidation,
     updateBookingStatusValidation,
     updateTechnicianProfileValidation,
-} from "./technicianManagement.validation";
+} from "./technicianManagement.validation.js";
 
 const router = Router();
 

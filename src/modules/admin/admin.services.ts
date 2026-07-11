@@ -1,12 +1,12 @@
-import { prisma } from "../../lib/prisma";
-import { AppError } from "../../utils/AppError";
-import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder";
+import { prisma } from "../../lib/prisma.js";
+import { AppError } from "../../utils/AppError.js";
+import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder.js";
 import type {
     IAdminBookingQuery,
     IAdminUserQuery,
     ICreateCategory,
     IUpdateUserStatus,
-} from "./admin.interface";
+} from "./admin.interface.js";
 
 const getAllUsersFromDB = async (query: IAdminUserQuery) => {
     const { where, skip, take, orderBy, page, limit } = buildPrismaQuery(query as Record<string, unknown>, {

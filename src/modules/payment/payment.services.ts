@@ -1,11 +1,11 @@
 import type Stripe from "stripe";
-import { prisma } from "../../lib/prisma";
-import { stripe } from "../../lib/stripe";
+import { prisma } from "../../lib/prisma.js";
+import { stripe } from "../../lib/stripe.js";
 import config from "../../config/index.js";
-import { AppError } from "../../utils/AppError";
-import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder";
-import type { ICreatePayment, IPaymentQuery } from "./payment.interface";
-import { handleCheckoutSessionCompleted, handleCheckoutSessionExpired } from "./payment.utils";
+import { AppError } from "../../utils/AppError.js";
+import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder.js";
+import type { ICreatePayment, IPaymentQuery } from "./payment.interface.js";
+import { handleCheckoutSessionCompleted, handleCheckoutSessionExpired } from "./payment.utils.js";
 
 const createPaymentIntoDB = async (customerId: string, payload: ICreatePayment) => {
     const booking = await prisma.booking.findUnique({

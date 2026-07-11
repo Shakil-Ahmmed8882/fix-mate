@@ -1,13 +1,13 @@
-import { prisma } from "../../lib/prisma";
-import { AppError } from "../../utils/AppError";
-import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder";
+import { prisma } from "../../lib/prisma.js";
+import { AppError } from "../../utils/AppError.js";
+import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder.js";
 import type {
     IAvailabilitySlotInput,
     ITechnicianBookingQuery,
     IUpdateAvailability,
     IUpdateBookingStatus,
     IUpdateTechnicianProfile,
-} from "./technicianManagement.interface";
+} from "./technicianManagement.interface.js";
 
 const bookingInclude = {
     service: { include: { category: true } },
