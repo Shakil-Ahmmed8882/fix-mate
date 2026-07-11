@@ -4,7 +4,7 @@ import { Prisma } from "../../generated/prisma/client";
 type TErrorResponse = {
     statusCode: number;
     message: string;
-    detail?: unknown;
+    errorDetails: unknown;
 };
 
 const isDev = () => process.env.NODE_ENV !== "production";
@@ -16,21 +16,21 @@ const handleKnownRequestError = (err: Prisma.PrismaClientKnownRequestError): TEr
             return {
                 statusCode: 409,
                 message: `A record with this ${target} already exists.`,
-                detail: err.meta,
+                errorDetails: err.meta ?? null,
             };
         }
         case "P2025":
             return {
                 statusCode: 404,
                 message: "The requested record was not found.",
-                detail: err.meta,
+                errorDetails: err.meta ?? null,
             };
         case "P2003": {
             const field = (err.meta?.field_name as string | undefined) || "related record";
             return {
                 statusCode: 400,
                 message: `This operation failed because it references a ${field} that does not exist.`,
-                detail: err.meta,
+                errorDetails: err.meta ?? null,
             };
         }
         case "P2000": {
@@ -38,7 +38,7 @@ const handleKnownRequestError = (err: Prisma.PrismaClientKnownRequestError): TEr
             return {
                 statusCode: 400,
                 message: `The provided value is too long for ${column}.`,
-                detail: err.meta,
+                errorDetails: err.meta ?? null,
             };
         }
         case "P2011": {
@@ -46,20 +46,20 @@ const handleKnownRequestError = (err: Prisma.PrismaClientKnownRequestError): TEr
             return {
                 statusCode: 400,
                 message: `Missing required value: ${constraint}.`,
-                detail: err.meta,
+                errorDetails: err.meta ?? null,
             };
         }
         case "P2014":
             return {
                 statusCode: 400,
                 message: "This change would violate a required relation between records.",
-                detail: err.meta,
+                errorDetails: err.meta ?? null,
             };
         default:
             return {
                 statusCode: 400,
                 message: `Database request failed (${err.code}).`,
-                detail: err.meta,
+                errorDetails: err.meta ?? null,
             };
     }
 };
@@ -73,7 +73,7 @@ const resolveError = (err: any): TErrorResponse => {
         return {
             statusCode: 400,
             message: "Invalid data provided. Please check your input fields.",
-            detail: err.message,
+            errorDetails: err.message,
         };
     }
 
@@ -81,7 +81,7 @@ const resolveError = (err: any): TErrorResponse => {
         return {
             statusCode: 500,
             message: "Could not connect to the database.",
-            detail: err.errorCode,
+            errorDetails: err.errorCode ?? null,
         };
     }
 
@@ -89,7 +89,7 @@ const resolveError = (err: any): TErrorResponse => {
         return {
             statusCode: 500,
             message: "A critical database engine error occurred.",
-            detail: err.message,
+            errorDetails: err.message,
         };
     }
 
@@ -97,23 +97,24 @@ const resolveError = (err: any): TErrorResponse => {
         return {
             statusCode: 500,
             message: "An unknown database error occurred.",
-            detail: err.message,
+            errorDetails: err.message,
         };
     }
 
     return {
         statusCode: err.statusCode || 500,
         message: err.message || "Internal Server Error",
+        errorDetails: err.errorDetails ?? null,
     };
 };
 
 export const globalErrorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-    const { statusCode, message, detail } = resolveError(err);
+    const { statusCode, message, errorDetails } = resolveError(err);
 
     res.status(statusCode).json({
         success: false,
-        statusCode,
         message,
-        ...(isDev() && { error: detail, stack: err.stack }),
+        errorDetails,
+        ...(isDev() && { stack: err.stack }),
     });
 }
