@@ -3,9 +3,11 @@ import { AppError } from "../../utils/AppError.js";
 import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder.js";
 import type {
     IAvailabilitySlotInput,
+    ICreateService,
     ITechnicianBookingQuery,
     IUpdateAvailability,
     IUpdateBookingStatus,
+    IUpdateService,
     IUpdateTechnicianProfile,
 } from "./technicianManagement.interface.js";
 
@@ -135,9 +137,102 @@ const updateBookingStatusIntoDB = async (technicianId: string, bookingId: string
     return updated;
 };
 
+// ── Service management (a technician's own service listings) ───────────────
+// A Service is an offer that belongs to one technician (it carries their
+// technicianId + price). So the technician is the owner: they create, update,
+// and delete their own listings. Every write here re-checks ownership so one
+// technician can never touch another's service.
+
+const serviceOwnerInclude = {
+    category: true,
+    technician: { select: { id: true, name: true, phone: true } },
+} as const;
+
+const createServiceIntoDB = async (technicianId: string, payload: ICreateService) => {
+    const category = await prisma.category.findUnique({ where: { id: payload.categoryId } });
+
+    if (!category) {
+        throw new AppError(404, "Category does not exist");
+    }
+
+    const service = await prisma.service.create({
+        data: {
+            title: payload.title,
+            ...(payload.description !== undefined && { description: payload.description }),
+            price: payload.price,
+            categoryId: payload.categoryId,
+            technicianId,
+        },
+        include: serviceOwnerInclude,
+    });
+
+    return service;
+};
+
+const updateMyServiceIntoDB = async (technicianId: string, serviceId: string, payload: IUpdateService) => {
+    const service = await prisma.service.findUnique({ where: { id: serviceId } });
+
+    if (!service) {
+        throw new AppError(404, "Service does not exist");
+    }
+
+    if (service.technicianId !== technicianId) {
+        throw new AppError(403, "You are not authorized to update this service");
+    }
+
+    // If the category is being changed, make sure the new one actually exists.
+    if (payload.categoryId) {
+        const category = await prisma.category.findUnique({ where: { id: payload.categoryId } });
+        if (!category) {
+            throw new AppError(404, "Category does not exist");
+        }
+    }
+
+    const updated = await prisma.service.update({
+        where: { id: serviceId },
+        data: payload,
+        include: serviceOwnerInclude,
+    });
+
+    return updated;
+};
+
+const deleteMyServiceFromDB = async (technicianId: string, serviceId: string) => {
+    const service = await prisma.service.findUnique({
+        where: { id: serviceId },
+        include: { bookings: { select: { id: true }, take: 1 } },
+    });
+
+    if (!service) {
+        throw new AppError(404, "Service does not exist");
+    }
+
+    if (service.technicianId !== technicianId) {
+        throw new AppError(403, "You are not authorized to delete this service");
+    }
+
+    // A service with booking history can't be hard-deleted (the Booking FK uses
+    // onDelete: Restrict, so it would fail anyway). Deactivate it instead — it
+    // disappears from public browsing while its bookings keep their record.
+    if (service.bookings.length > 0) {
+        const deactivated = await prisma.service.update({
+            where: { id: serviceId },
+            data: { isActive: false },
+            include: serviceOwnerInclude,
+        });
+        return { deactivated: true, service: deactivated };
+    }
+
+    await prisma.service.delete({ where: { id: serviceId } });
+    return { deactivated: false, service };
+};
+
 export const TechnicianManagementServices = {
     updateMyProfileIntoDB,
     replaceAvailabilityInDB,
     getMyBookingsFromDB,
     updateBookingStatusIntoDB,
+    createServiceIntoDB,
+    updateMyServiceIntoDB,
+    deleteMyServiceFromDB,
 };
