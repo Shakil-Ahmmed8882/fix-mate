@@ -25,3 +25,18 @@ export interface ITechnicianBookingQuery {
 export interface IUpdateBookingStatus {
     status: "ACCEPTED" | "DECLINED" | "IN_PROGRESS" | "COMPLETED";
 }
+
+export interface ICreateService {
+    title: string;
+    description?: string;
+    price: number;
+    categoryId: string;
+}
+
+export interface IUpdateService {
+    title?: string;
+    description?: string;
+    price?: number;
+    categoryId?: string;
+    isActive?: boolean;
+}
