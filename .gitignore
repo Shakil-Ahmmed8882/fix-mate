@@ -1,0 +1,18 @@
+node_modules
+dist
+
+# Prisma
+prisma/generated/
+*.db
+*.db-journal
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# TypeScript
+*.tsbuildinfo
+
+/generated/prisma
+git.md
