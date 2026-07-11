@@ -1,9 +1,13 @@
 {
     "version": 2,
+    "framework": null,
     "buildCommand": "node scripts/build-vercel.mjs",
     "functions": {
         "api/index.js": {
             "maxDuration": 30
         }
-    }
+    },
+    "rewrites": [
+        { "source": "/(.*)", "destination": "/api/index" }
+    ]
 }
