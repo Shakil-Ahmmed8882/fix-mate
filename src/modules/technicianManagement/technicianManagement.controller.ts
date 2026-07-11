@@ -56,9 +56,54 @@ const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const createService = catchAsync(async (req: Request, res: Response) => {
+    const service = await TechnicianManagementServices.createServiceIntoDB(req.user!.userId, req.body);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Service created successfully",
+        data: service,
+    });
+});
+
+const updateMyService = catchAsync(async (req: Request, res: Response) => {
+    const service = await TechnicianManagementServices.updateMyServiceIntoDB(
+        req.user!.userId,
+        req.params.id as string,
+        req.body
+    );
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Service updated successfully",
+        data: service,
+    });
+});
+
+const deleteMyService = catchAsync(async (req: Request, res: Response) => {
+    const result = await TechnicianManagementServices.deleteMyServiceFromDB(
+        req.user!.userId,
+        req.params.id as string
+    );
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: result.deactivated
+            ? "Service has bookings, so it was deactivated instead of deleted"
+            : "Service deleted successfully",
+        data: result.service,
+    });
+});
+
 export const technicianManagementController = {
     updateMyProfile,
     updateAvailability,
     getMyBookings,
     updateBookingStatus,
+    createService,
+    updateMyService,
+    deleteMyService,
 };
