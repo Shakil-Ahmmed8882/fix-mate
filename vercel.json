@@ -1,8 +1,8 @@
 {
     "version": 2,
-    "buildCommand": "npx prisma generate",
+    "buildCommand": "node scripts/build-vercel.mjs",
     "functions": {
-        "api/index.ts": {
+        "api/index.js": {
             "maxDuration": 30
         }
     }
