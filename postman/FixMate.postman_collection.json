@@ -2,24 +2,65 @@
     "info": {
         "_postman_id": "fixmate-api-collection",
         "name": "FixMate API",
-        "description": "# FixMate API\n\nHome services marketplace backend — Customers book Technicians for jobs, pay via Stripe/SSLCommerz, and leave Reviews. Admins moderate users, bookings, and Categories.\n\nAll variables this collection needs (`baseUrl`, `accessToken`, `bookingId`, etc.) are **collection-scoped** — they live only inside this collection and will not collide with any other project's Postman globals or environments. You do not need to import a separate environment file; just import this collection and start running requests. Open **Collection → Variables** tab if you want to inspect/reset them by hand.\n\n---\n\n## Seeded accounts (run `npm run seed` once against the target database)\n\n| Role | Email | Password |\n|---|---|---|\n| Admin | `admin@fixmate.dev` (or your `ADMIN_EMAIL`) | your `ADMIN_PASSWORD` |\n| Technician (sample) | `sam.technician@fixmate.dev` | `Secret123!` |\n\nThe seed also creates a `Plumbing` category and a `Kitchen sink repair` service under the sample technician, so `Bookings > Create` has something real to book immediately — no manual data entry needed.\n\n---\n\n## The three role journeys (who can do what, end to end)\n\n### Customer journey\n1. `User > Register or Login` — register with no `role` field (defaults to CUSTOMER), or comment in the CUSTOMER login block.\n2. `Categories > Get All`, `Services > Get All` / `Get One`, `Technicians > Get All` / `Get One` — browse, no auth needed.\n3. `Bookings > Create` — book a technician for a service + time slot. Saves `bookingId`.\n4. `Payments > Create` — only works once the booking is `ACCEPTED` (a Technician must accept it first — see below). Opens a real Stripe test checkout.\n5. Complete payment via Stripe CLI (`npm run stripe:webhook`) or ask the backend owner to confirm it — booking moves to `PAID`.\n6. `Bookings > Get All` / `Get One` — track status the whole way through.\n7. `Bookings > Cancel` — allowed any time before the booking reaches `IN_PROGRESS`.\n8. Once a Technician marks the job `COMPLETED`, `Reviews > Create` — one review per booking, rating 1-5.\n\n### Technician journey\n1. `User > Register or Login` — register with `role: \"TECHNICIAN\"` (comment in that variant), or use the seeded `sam.technician@fixmate.dev` account. Registering also auto-creates an empty Technician Profile.\n2. `Technician Self-Service > Update My Profile` — set skills, years of experience, availability flag.\n3. `Technician Self-Service > Update My Availability` — replace the full weekly schedule in one call.\n4. *(Service creation has no API yet — the seed script creates one sample service for you; ask the backend owner to add more directly if needed.)*\n5. `Technician Self-Service > Get My Bookings` — see incoming requests.\n6. `Technician Self-Service > Update Booking Status` — one endpoint drives the whole state machine:\n   `REQUESTED → ACCEPTED or DECLINED`, then `PAID → IN_PROGRESS`, then `IN_PROGRESS → COMPLETED`. Any other transition is rejected with a 400 explaining exactly which transitions are legal from the current state.\n\n### Admin journey\n1. `Auth > Login` with the seeded Admin credentials above (there is **no self-registration path for Admin** — by design, nobody can grant themselves admin through a public endpoint).\n2. `Admin > Get All Users` — see every user, any role.\n3. `Admin > Ban User` / `Unban User` — toggles `activeStatus`. Verified to take effect **immediately**: a banned user's existing token stops working on their very next request, and they cannot log in again while blocked.\n4. `Admin > Get All Bookings` — oversee every booking in the system regardless of owner.\n5. `Admin > Get All Categories` / `Create Category` — manage the category list customers and technicians browse/filter by. Fails with 409 on a duplicate name.\n\n---\n\n## How auth works in this collection\nEvery `Login` and `Register (role: TECHNICIAN)` request has a **Test script** that automatically saves `accessToken`, `refreshToken`, and the relevant id (`customerId`/`technicianId`) into this collection's variables. Every protected request below sends `Authorization: Bearer {{accessToken}}` — you never copy-paste a token by hand. Just run Login for whichever role you want to act as; it overwrites `accessToken` for the next requests you run.\n\n`Bookings > Create`, `Payments > Create`, `Admin > Create Category` similarly auto-save `bookingId` / `paymentId` / `categoryId` for you.\n\n---\n\n## Error responses\nEvery error (validation failure, not-found, unauthorized, server error) returns the same JSON shape:\n```json\n{ \"success\": false, \"message\": \"...\", \"errorDetails\": null }\n```\nValidation failures populate `errorDetails` with a list of `{ field, message }` — see any request marked with invalid example data for a live sample.",
+        "description": "# FixMate API\n\n**FixMate is a home-services marketplace.** A customer browses service categories, picks a technician's service, and books a time. The technician accepts the request; the customer pays for it through **Stripe Checkout**; the technician then carries the job through to completion, and the customer leaves a review. Admins oversee the whole system — they manage users, categories, and every booking.\n\nPayments are handled with **Stripe** (test mode) end to end — a real Checkout session is created and a signed Stripe webhook confirms it.\n\n---\n\n## How this collection is organised (by module, not by role)\n\nEvery folder is a **resource/module**, and it contains **all** operations on that resource — create, read, update, delete, and the role-restricted ones — together in one place. You never leave the `Categories` folder to create a category, or hop to an `Admin` folder to see all bookings. Which role a request needs is written on each request; the grouping stays by module.\n\nEach folder's **description** (this info panel, one level down) lists its endpoints in a small table: method, path, who can call it, and what it does. Open a folder to see its module doc.\n\n---\n\n## Roles — who can do what\n\n| Capability | Customer | Technician | Admin |\n|---|:---:|:---:|:---:|\n| Register / login / manage own profile & password | ✅ | ✅ | login only |\n| Browse categories / services / technicians | ✅ | ✅ | ✅ |\n| Create a booking | ✅ | — | — |\n| Cancel own booking (before IN_PROGRESS) | ✅ | — | — |\n| Pay for a booking (Stripe) | ✅ | — | — |\n| Review a completed booking | ✅ | — | — |\n| See own bookings | ✅ (as customer) | ✅ (assigned) | — |\n| Accept / decline / progress / complete a booking | — | ✅ | — |\n| Manage own technician profile & availability | — | ✅ | — |\n| See ALL users / bookings | — | — | ✅ |\n| Ban / unban a user | — | — | ✅ |\n| Create categories | — | — | ✅ |\n\n---\n\n## Seeded accounts (run `npm run seed` once against the target database)\n\n| Role | Email | Password |\n|---|---|---|\n| Admin | `admin@fixmate.dev` (or your `ADMIN_EMAIL`) | your `ADMIN_PASSWORD` |\n| Technician (sample) | `sam.technician@fixmate.dev` | `Secret123!` |\n\nThe seed also creates a `Plumbing` category and a `Kitchen sink repair` service under the sample technician, so `Bookings > Create` has something real to book immediately.\n\n---\n\n## Variables & auth\n\nAll variables (`baseUrl`, `accessToken`, `bookingId`, …) are **collection-scoped** — they live only inside this collection and won't collide with any other project's Postman globals. Just import and run; no separate environment file.\n\n`Login` and `Register` auto-save the tokens and the relevant id into collection variables via a Test script, and every protected request sends `Authorization: Bearer {{accessToken}}` — you never copy a token by hand. Run `Login` for whichever role you want to act as; it overwrites `accessToken` for subsequent requests. `Bookings > Create`, `Payments > Create`, and `Categories > Create` similarly save `bookingId` / `paymentId` / `categoryId`.\n\n---\n\n## A full run-through\n\n1. **User > Register** (or use a seeded account), then **Auth > Login** as that role.\n2. **Categories / Services / Technicians > Get All** — browse (public).\n3. **Bookings > Create** (as customer) → login as the technician → **Bookings > Update Status (technician)** = `ACCEPTED`.\n4. Login as the customer → **Payments > Create** → pay the returned `checkoutUrl` with Stripe test card `4242 4242 4242 4242`.\n5. Login as technician → push status `IN_PROGRESS` → `COMPLETED`.\n6. Login as customer → **Reviews > Create**.\n7. Login as admin → **User / Bookings > Get All (admin)** to oversee everything.\n\n---\n\n## Error shape\n\nEvery error returns the same JSON:\n```json\n{ \"success\": false, \"message\": \"...\", \"errorDetails\": null }\n```\nValidation failures populate `errorDetails` with a list of `{ field, message }`.\n",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
-        { "key": "baseUrl", "value": "http://localhost:5000", "type": "default" },
-        { "key": "accessToken", "value": "", "type": "secret" },
-        { "key": "refreshToken", "value": "", "type": "secret" },
-        { "key": "customerId", "value": "", "type": "default" },
-        { "key": "technicianId", "value": "", "type": "default" },
-        { "key": "adminId", "value": "", "type": "default" },
-        { "key": "categoryId", "value": "", "type": "default" },
-        { "key": "serviceId", "value": "", "type": "default" },
-        { "key": "bookingId", "value": "", "type": "default" },
-        { "key": "paymentId", "value": "", "type": "default" }
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:5000",
+            "type": "default"
+        },
+        {
+            "key": "accessToken",
+            "value": "",
+            "type": "secret"
+        },
+        {
+            "key": "refreshToken",
+            "value": "",
+            "type": "secret"
+        },
+        {
+            "key": "customerId",
+            "value": "",
+            "type": "default"
+        },
+        {
+            "key": "technicianId",
+            "value": "",
+            "type": "default"
+        },
+        {
+            "key": "adminId",
+            "value": "",
+            "type": "default"
+        },
+        {
+            "key": "categoryId",
+            "value": "",
+            "type": "default"
+        },
+        {
+            "key": "serviceId",
+            "value": "",
+            "type": "default"
+        },
+        {
+            "key": "bookingId",
+            "value": "",
+            "type": "default"
+        },
+        {
+            "key": "paymentId",
+            "value": "",
+            "type": "default"
+        }
     ],
     "item": [
         {
             "name": "Auth",
+            "description": "# Auth (session lifecycle)\n\nEverything about starting, refreshing, and ending a login session. Registering a new account lives in the **User** module (it creates the user record); this folder is about tokens for an account that already exists.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/auth/login` | public | Exchange email + password for access + refresh tokens. Auto-saves both tokens and the matching id into collection variables. |\n| `POST` | `/api/auth/refresh-token` | anyone with a valid refresh cookie | Issue a fresh access token from the refresh cookie (refresh token itself is not rotated). |\n| `POST` | `/api/auth/logout` | public | Clear the access/refresh cookies server-side. |\n| `GET` | `/api/auth/me` | any logged-in user | Return the currently authenticated account. |",
             "item": [
                 {
                     "name": "Login",
@@ -48,12 +89,27 @@
                     ],
                     "request": {
                         "method": "POST",
-                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
                             "raw": "{\n  \"email\": \"jane.customer@fixmate.dev\",\n  \"password\": \"Secret123!\"\n}\n\n// -- TECHNICIAN login (comment out the block above, uncomment this one) --\n// {\n//   \"email\": \"sam.technician@fixmate.dev\",\n//   \"password\": \"Secret123!\"\n// }\n\n// -- ADMIN login (must already be seeded directly in the DB -- no self-register) --\n// {\n//   \"email\": \"admin@fixmate.dev\",\n//   \"password\": \"Secret123!\"\n// }"
                         },
-                        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        },
                         "description": "**Who can call this:** anyone (public).\n\nActive body: CUSTOMER. To log in as a different role, delete the active JSON block and uncomment the TECHNICIAN or ADMIN block below it (they're valid JSON once uncommented — the `//` lines above/below them are the only thing making them inactive).\n\nSaves `accessToken` + `refreshToken` + the matching id into collection variables automatically, based on the `role` in the response."
                     }
                 },
@@ -77,7 +133,17 @@
                     "request": {
                         "method": "POST",
                         "header": [],
-                        "url": { "raw": "{{baseUrl}}/api/auth/refresh-token", "host": ["{{baseUrl}}"], "path": ["api", "auth", "refresh-token"] },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/refresh-token",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "refresh-token"
+                            ]
+                        },
                         "description": "**Who can call this:** anyone with a valid `refreshToken` cookie (set automatically by Postman's cookie jar after Login runs in the same session).\n\nIssues a new `accessToken` only — the refresh token itself is not rotated."
                     }
                 },
@@ -86,7 +152,17 @@
                     "request": {
                         "method": "POST",
                         "header": [],
-                        "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"] },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/logout",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "logout"
+                            ]
+                        },
                         "description": "**Who can call this:** anyone (public). Clears the `accessToken`/`refreshToken` cookies server-side."
                     }
                 },
@@ -94,8 +170,23 @@
                     "name": "Get Current User (me)",
                     "request": {
                         "method": "GET",
-                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-                        "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] },
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/me",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "me"
+                            ]
+                        },
                         "description": "**Who can call this:** any authenticated user, any role. Identical to `User > Get My Profile (me)` — kept here too since the assignment spec documents it at this exact path."
                     }
                 }
@@ -103,6 +194,7 @@
         },
         {
             "name": "User",
+            "description": "# User (the account resource)\n\nEverything that acts on a **user record** — creating one (register), a user managing their own profile/password, and an admin managing any user. Grouped here so you never leave this folder to test the full user lifecycle, whatever role is calling.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/users/register` | public | Create a CUSTOMER (default) or TECHNICIAN account. Registering a technician also auto-creates an empty technician profile. Does not auto-login. |\n| `GET` | `/api/users/me` | any logged-in user | Return the logged-in user's own profile. |\n| `PATCH` | `/api/users/update-profile` | any logged-in user | Update own name/phone (user row) and bio/photo/address (profile row). All fields optional. |\n| `PATCH` | `/api/users/update-password` | any logged-in user | Change own password (needs oldPassword + newPassword). |\n| `GET` | `/api/admin/users` | ADMIN | List every user of any role (passwords never returned). Supports page/limit/role/searchTerm. |\n| `PATCH` | `/api/admin/users/:id` | ADMIN | Ban (activeStatus BLOCKED) or unban (ACTIVE) any user. Takes effect immediately on their next request. |",
             "item": [
                 {
                     "name": "Register",
@@ -124,12 +216,27 @@
                     ],
                     "request": {
                         "method": "POST",
-                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
                             "raw": "{\n  \"name\": \"Jane Customer\",\n  \"email\": \"jane.customer@fixmate.dev\",\n  \"password\": \"Secret123!\",\n  \"phone\": \"+8801700000000\"\n}\n\n// -- TECHNICIAN register (comment out the block above, uncomment this one) --\n// {\n//   \"name\": \"Sam Technician\",\n//   \"email\": \"sam.technician@fixmate.dev\",\n//   \"password\": \"Secret123!\",\n//   \"phone\": \"+8801700000001\",\n//   \"role\": \"TECHNICIAN\"\n// }\n\n// Note: ADMIN is not a selectable role here on purpose -- nobody should be able\n// to self-register as an admin through a public endpoint. Admin accounts are seeded directly."
                         },
-                        "url": { "raw": "{{baseUrl}}/api/users/register", "host": ["{{baseUrl}}"], "path": ["api", "users", "register"] },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/register",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "register"
+                            ]
+                        },
                         "description": "**Who can call this:** anyone (public).\n\nActive body: CUSTOMER (role omitted -> defaults to CUSTOMER). Uncomment the TECHNICIAN block to register a technician instead — it also auto-creates an empty Technician Profile.\n\nDoes **not** auto-login — run `Auth > Login` afterward to get tokens."
                     }
                 },
@@ -137,8 +244,23 @@
                     "name": "Get My Profile (me)",
                     "request": {
                         "method": "GET",
-                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-                        "url": { "raw": "{{baseUrl}}/api/users/me", "host": ["{{baseUrl}}"], "path": ["api", "users", "me"] },
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/me",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "me"
+                            ]
+                        },
                         "description": "**Who can call this:** any authenticated user, any role. Returns whichever account's `accessToken` is currently saved in the collection variables."
                     }
                 },
@@ -147,14 +269,30 @@
                     "request": {
                         "method": "PATCH",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                            { "key": "Content-Type", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
                         ],
                         "body": {
                             "mode": "raw",
                             "raw": "{\n  \"bio\": \"I need my sink fixed\",\n  \"address\": \"Dhaka, BD\",\n  \"phone\": \"+8801700000099\"\n}"
                         },
-                        "url": { "raw": "{{baseUrl}}/api/users/update-profile", "host": ["{{baseUrl}}"], "path": ["api", "users", "update-profile"] },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/update-profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "update-profile"
+                            ]
+                        },
                         "description": "**Who can call this:** any authenticated user, any role. All fields optional — `name`/`phone` update the User row, `bio`/`profilePhoto`/`address` update the Profile row."
                     }
                 },
@@ -163,44 +301,225 @@
                     "request": {
                         "method": "PATCH",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                            { "key": "Content-Type", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
                         ],
                         "body": {
                             "mode": "raw",
                             "raw": "{\n  \"oldPassword\": \"Secret123!\",\n  \"newPassword\": \"NewSecret123!\"\n}"
                         },
-                        "url": { "raw": "{{baseUrl}}/api/users/update-password", "host": ["{{baseUrl}}"], "path": ["api", "users", "update-password"] },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/users/update-password",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "update-password"
+                            ]
+                        },
                         "description": "**Who can call this:** any authenticated user, any role. After running this, `Auth > Login`'s saved password will be stale for this account — log in with `NewSecret123!` afterward, or skip this request during a full run-through."
+                    }
+                },
+                {
+                    "name": "Get All Users (admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/users?page=1&limit=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "users"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "role",
+                                    "value": "",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "searchTerm",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "**Who can call this:** ADMIN only. Returns every user, any role, password always omitted."
+                    }
+                },
+                {
+                    "name": "Ban / Unban User (admin)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"activeStatus\": \"BLOCKED\"\n}\n\n// To unban instead, use:\n// { \"activeStatus\": \"ACTIVE\" }"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/users/{{customerId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "users",
+                                "{{customerId}}"
+                            ]
+                        },
+                        "description": "**Who can call this:** ADMIN only. Only toggles `activeStatus` — this is not a general user editor (name/email/role are not editable here, by design).\n\nDefaults to targeting `{{customerId}}` — change the URL's id to ban/unban a technician instead by pasting a different user id.\n\nVerified to take effect **immediately**: a banned user's already-issued access token stops working on their very next request, and they cannot log in again while blocked."
                     }
                 }
             ]
         },
         {
             "name": "Categories",
+            "description": "# Categories\n\nThe category list customers and technicians browse and filter services by. Public read; admin-only create. All category operations live here — you don't jump to an Admin folder to create one.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `GET` | `/api/categories` | public | List all categories (page/limit/searchTerm). This is the one customers/technicians browse. |\n| `POST` | `/api/admin/categories` | ADMIN | Create a new category. 409 on duplicate name. Saves the new id as categoryId. |\n| `GET` | `/api/admin/categories` | ADMIN | Same list as public, exposed under the admin prefix for an admin dashboard. |",
             "item": [
                 {
-                    "name": "Get All",
+                    "name": "Get All (public)",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
                             "raw": "{{baseUrl}}/api/categories?page=1&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "categories"],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "categories"
+                            ],
                             "query": [
-                                { "key": "page", "value": "1" },
-                                { "key": "limit", "value": "10" },
-                                { "key": "searchTerm", "value": "", "disabled": true }
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "searchTerm",
+                                    "value": "",
+                                    "disabled": true
+                                }
                             ]
                         },
                         "description": "**Who can call this:** anyone (public)."
+                    }
+                },
+                {
+                    "name": "Create (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res && res.data && res.data.id) {",
+                                    "    pm.collectionVariables.set('categoryId', res.data.id);",
+                                    "    console.log('Saved categoryId: ' + res.data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Plumbing\",\n  \"description\": \"Pipe, sink, and drain repair\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/categories",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "categories"
+                            ]
+                        },
+                        "description": "**Who can call this:** ADMIN only. Fails with 409 if a category with this exact `name` already exists. Saves the new category's id as `categoryId`."
+                    }
+                },
+                {
+                    "name": "Get All (admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/categories",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "categories"
+                            ]
+                        },
+                        "description": "**Who can call this:** ADMIN only. Same data as the public `Categories > Get All` — exists so an admin dashboard doesn't need to hit the public route."
                     }
                 }
             ]
         },
         {
             "name": "Services",
+            "description": "# Services\n\nThe individual jobs a technician offers under a category (e.g. “Kitchen sink repair”). Public read only in this build — services are created by the seed script; there is no create/update/delete API yet.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `GET` | `/api/services` | public | List services (page/limit, filter by categoryId, search by searchTerm). |\n| `GET` | `/api/services/:id` | public | Get one service by id. |",
             "item": [
                 {
                     "name": "Get All",
@@ -209,13 +528,32 @@
                         "header": [],
                         "url": {
                             "raw": "{{baseUrl}}/api/services?page=1&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "services"],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "services"
+                            ],
                             "query": [
-                                { "key": "page", "value": "1" },
-                                { "key": "limit", "value": "10" },
-                                { "key": "categoryId", "value": "{{categoryId}}", "disabled": true },
-                                { "key": "searchTerm", "value": "", "disabled": true }
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "categoryId",
+                                    "value": "{{categoryId}}",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "searchTerm",
+                                    "value": "",
+                                    "disabled": true
+                                }
                             ]
                         },
                         "description": "**Who can call this:** anyone (public). Filter by `categoryId`, search by `searchTerm` (matches title/description)."
@@ -226,7 +564,17 @@
                     "request": {
                         "method": "GET",
                         "header": [],
-                        "url": { "raw": "{{baseUrl}}/api/services/{{serviceId}}", "host": ["{{baseUrl}}"], "path": ["api", "services", "{{serviceId}}"] },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/services/{{serviceId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "services",
+                                "{{serviceId}}"
+                            ]
+                        },
                         "description": "**Who can call this:** anyone (public)."
                     }
                 }
@@ -234,6 +582,7 @@
         },
         {
             "name": "Technicians",
+            "description": "# Technicians\n\nEverything about the technician as a resource — the public can browse them; a logged-in technician manages their own profile and weekly availability. Booking operations a technician performs live in the **Bookings** module (they act on bookings, not on the technician record).\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `GET` | `/api/technicians` | public | List active technicians (page/limit/searchTerm). |\n| `GET` | `/api/technicians/:id` | public | Get one technician with their active services and all reviews. |\n| `PUT` | `/api/technician/profile` | TECHNICIAN | Update own skills / experienceYears / isAvailable. All fields optional. |\n| `PUT` | `/api/technician/availability` | TECHNICIAN | Replace the ENTIRE weekly schedule (not additive). dayOfWeek 0=Sun..6=Sat, times HH:mm. |",
             "item": [
                 {
                     "name": "Get All",
@@ -242,12 +591,27 @@
                         "header": [],
                         "url": {
                             "raw": "{{baseUrl}}/api/technicians?page=1&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "technicians"],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technicians"
+                            ],
                             "query": [
-                                { "key": "page", "value": "1" },
-                                { "key": "limit", "value": "10" },
-                                { "key": "searchTerm", "value": "", "disabled": true }
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "searchTerm",
+                                    "value": "",
+                                    "disabled": true
+                                }
                             ]
                         },
                         "description": "**Who can call this:** anyone (public). Only returns users with `role: TECHNICIAN` and `activeStatus: ACTIVE`."
@@ -258,14 +622,89 @@
                     "request": {
                         "method": "GET",
                         "header": [],
-                        "url": { "raw": "{{baseUrl}}/api/technicians/{{technicianId}}", "host": ["{{baseUrl}}"], "path": ["api", "technicians", "{{technicianId}}"] },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technicians/{{technicianId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technicians",
+                                "{{technicianId}}"
+                            ]
+                        },
                         "description": "**Who can call this:** anyone (public). Includes the technician's active services and every review they've received."
+                    }
+                },
+                {
+                    "name": "Update My Profile (technician)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"skills\": [\"plumbing\", \"pipe fitting\"],\n  \"experienceYears\": 8,\n  \"isAvailable\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technician/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technician",
+                                "profile"
+                            ]
+                        },
+                        "description": "**Who can call this:** TECHNICIAN only. All fields optional — send only what changes."
+                    }
+                },
+                {
+                    "name": "Update My Availability (technician)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"slots\": [\n    { \"dayOfWeek\": 1, \"startTime\": \"09:00\", \"endTime\": \"17:00\" },\n    { \"dayOfWeek\": 3, \"startTime\": \"10:00\", \"endTime\": \"18:00\" }\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technician/availability",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technician",
+                                "availability"
+                            ]
+                        },
+                        "description": "**Who can call this:** TECHNICIAN only. Replaces the ENTIRE weekly schedule every time (not additive) — send the complete set of slots you want. `dayOfWeek`: 0=Sunday...6=Saturday. Times in 24h `HH:mm`."
                     }
                 }
             ]
         },
         {
             "name": "Bookings",
+            "description": "# Bookings\n\nThe full lifecycle of a booking, for every role that touches it — the customer who creates and cancels it, the technician who accepts and drives it through the state machine, and the admin who oversees all of them. One folder, one place to test the whole flow.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/bookings` | CUSTOMER | Create a booking for a service + time. Technician is derived from the service. Saves bookingId. |\n| `GET` | `/api/bookings` | CUSTOMER | List the logged-in customer's own bookings (page/limit/status). |\n| `GET` | `/api/bookings/:id` | CUSTOMER (owner) | Get one of the customer's own bookings. |\n| `PATCH` | `/api/bookings/:id/cancel` | CUSTOMER (owner) | Cancel while REQUESTED/ACCEPTED/PAID; 400 once IN_PROGRESS or later. |\n| `GET` | `/api/technician/bookings` | TECHNICIAN | List bookings assigned to the logged-in technician (page/limit/status). |\n| `PATCH` | `/api/technician/bookings/:id` | TECHNICIAN (assigned) | Drive the state machine: REQUESTED→ACCEPTED/DECLINED, PAID→IN_PROGRESS, IN_PROGRESS→COMPLETED. |\n| `GET` | `/api/admin/bookings` | ADMIN | List every booking in the system regardless of owner (page/limit/status). |",
             "item": [
                 {
                     "name": "Create",
@@ -287,14 +726,29 @@
                     "request": {
                         "method": "POST",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                            { "key": "Content-Type", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
                         ],
                         "body": {
                             "mode": "raw",
                             "raw": "{\n  \"serviceId\": \"{{serviceId}}\",\n  \"scheduledAt\": \"2026-08-15T10:00:00.000Z\",\n  \"note\": \"Leaking kitchen sink\"\n}"
                         },
-                        "url": { "raw": "{{baseUrl}}/api/bookings", "host": ["{{baseUrl}}"], "path": ["api", "bookings"] },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/bookings",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "bookings"
+                            ]
+                        },
                         "description": "**Who can call this:** CUSTOMER only.\n\n`serviceId` must reference an existing, active Service. The technician is derived automatically from the service — you never send `technicianId`. Saves the new booking's id as `bookingId`."
                     }
                 },
@@ -302,15 +756,35 @@
                     "name": "Get All (mine)",
                     "request": {
                         "method": "GET",
-                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
                         "url": {
                             "raw": "{{baseUrl}}/api/bookings?page=1&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "bookings"],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "bookings"
+                            ],
                             "query": [
-                                { "key": "page", "value": "1" },
-                                { "key": "limit", "value": "10" },
-                                { "key": "status", "value": "", "disabled": true }
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "disabled": true
+                                }
                             ]
                         },
                         "description": "**Who can call this:** CUSTOMER only. Returns only bookings belonging to the logged-in customer."
@@ -320,8 +794,23 @@
                     "name": "Get One",
                     "request": {
                         "method": "GET",
-                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-                        "url": { "raw": "{{baseUrl}}/api/bookings/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "{{bookingId}}"] },
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/bookings/{{bookingId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "bookings",
+                                "{{bookingId}}"
+                            ]
+                        },
                         "description": "**Who can call this:** CUSTOMER only, and only the customer who owns this booking (403 otherwise)."
                     }
                 },
@@ -329,15 +818,143 @@
                     "name": "Cancel",
                     "request": {
                         "method": "PATCH",
-                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-                        "url": { "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "{{bookingId}}", "cancel"] },
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/cancel",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "bookings",
+                                "{{bookingId}}",
+                                "cancel"
+                            ]
+                        },
                         "description": "**Who can call this:** CUSTOMER only, and only the owner. Only allowed while status is `REQUESTED`, `ACCEPTED`, or `PAID` — fails with 400 once `IN_PROGRESS` or later, matching the spec's cancellation rule."
+                    }
+                },
+                {
+                    "name": "Get My Bookings (technician)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technician/bookings?page=1&limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technician",
+                                "bookings"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "**Who can call this:** TECHNICIAN only. Returns only bookings assigned to the logged-in technician."
+                    }
+                },
+                {
+                    "name": "Update Status (technician)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"ACCEPTED\"\n}\n\n// This one endpoint drives the whole booking state machine -- swap the\n// \"status\" value depending on where the booking currently is:\n//\n//   current REQUESTED   -> \"ACCEPTED\" or \"DECLINED\"\n//   current PAID         -> \"IN_PROGRESS\"\n//   current IN_PROGRESS  -> \"COMPLETED\"\n//\n// Any other transition (e.g. REQUESTED straight to COMPLETED) is rejected\n// with a 400 that names exactly which transitions ARE legal right now."
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technician/bookings/{{bookingId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technician",
+                                "bookings",
+                                "{{bookingId}}"
+                            ]
+                        },
+                        "description": "**Who can call this:** TECHNICIAN only, and only the technician assigned to this booking (403 otherwise).\n\nSee the body comment for the full legal-transition table. This single endpoint replaces what would otherwise be four separate accept/decline/start/complete routes."
+                    }
+                },
+                {
+                    "name": "Get All (admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/bookings?page=1&limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "bookings"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "**Who can call this:** ADMIN only. Returns every booking in the system regardless of which customer/technician it belongs to."
                     }
                 }
             ]
         },
         {
             "name": "Payments",
+            "description": "# Payments\n\nPaying for an accepted booking via Stripe Checkout, and reading payment records. The confirm endpoint is Stripe's webhook — included for reference, not for hand-firing.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/payments/create` | CUSTOMER (owner) | Open a real Stripe test checkout for an ACCEPTED booking. Returns checkoutUrl, saves paymentId. |\n| `POST` | `/api/payments/confirm` | Stripe (webhook) | Signed webhook Stripe calls after payment; moves the booking to PAID. Not callable by hand. |\n| `GET` | `/api/payments` | CUSTOMER | List the customer's own payments (page/limit/status). |\n| `GET` | `/api/payments/:id` | CUSTOMER (owner) | Get one payment the customer owns. |",
             "item": [
                 {
                     "name": "Create (Stripe Checkout)",
@@ -359,14 +976,30 @@
                     "request": {
                         "method": "POST",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                            { "key": "Content-Type", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
                         ],
                         "body": {
                             "mode": "raw",
                             "raw": "{\n  \"bookingId\": \"{{bookingId}}\"\n}"
                         },
-                        "url": { "raw": "{{baseUrl}}/api/payments/create", "host": ["{{baseUrl}}"], "path": ["api", "payments", "create"] },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/payments/create",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payments",
+                                "create"
+                            ]
+                        },
                         "description": "**Who can call this:** CUSTOMER only, and only the owner of the booking. Booking must be status `ACCEPTED` (a Technician must accept it first via `Technician Self-Service > Update Booking Status`).\n\nReturns a real Stripe test-mode `checkoutUrl` — open it in a browser and pay with card `4242 4242 4242 4242` to complete it."
                     }
                 },
@@ -375,11 +1008,30 @@
                     "request": {
                         "method": "POST",
                         "header": [
-                            { "key": "Content-Type", "value": "application/json" },
-                            { "key": "stripe-signature", "value": "PASTE_FROM_STRIPE_CLI" }
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "stripe-signature",
+                                "value": "PASTE_FROM_STRIPE_CLI"
+                            }
                         ],
-                        "body": { "mode": "raw", "raw": "{}" },
-                        "url": { "raw": "{{baseUrl}}/api/payments/confirm", "host": ["{{baseUrl}}"], "path": ["api", "payments", "confirm"] },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/payments/confirm",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payments",
+                                "confirm"
+                            ]
+                        },
                         "description": "**Who can call this:** Stripe only. This is a webhook endpoint, not a normal request — it verifies a cryptographic signature over the raw body and will reject any hand-typed body. Included for reference only. To actually trigger it: run `npm run stripe:webhook` (starts the Stripe CLI listener) and complete a real payment via the `checkoutUrl` from `Create`."
                     }
                 },
@@ -387,15 +1039,35 @@
                     "name": "Get All (mine)",
                     "request": {
                         "method": "GET",
-                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
                         "url": {
                             "raw": "{{baseUrl}}/api/payments?page=1&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "payments"],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payments"
+                            ],
                             "query": [
-                                { "key": "page", "value": "1" },
-                                { "key": "limit", "value": "10" },
-                                { "key": "status", "value": "", "disabled": true }
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "disabled": true
+                                }
                             ]
                         },
                         "description": "**Who can call this:** CUSTOMER only. Returns only payments on bookings the logged-in customer owns."
@@ -405,8 +1077,23 @@
                     "name": "Get One",
                     "request": {
                         "method": "GET",
-                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-                        "url": { "raw": "{{baseUrl}}/api/payments/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["api", "payments", "{{paymentId}}"] },
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/payments/{{paymentId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "payments",
+                                "{{paymentId}}"
+                            ]
+                        },
                         "description": "**Who can call this:** CUSTOMER only, and only the owner of the underlying booking."
                     }
                 }
@@ -414,190 +1101,37 @@
         },
         {
             "name": "Reviews",
+            "description": "# Reviews\n\nA customer's review of a completed booking. One review per booking.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/reviews` | CUSTOMER (owner) | Leave a 1–5 rating + comment on a COMPLETED booking. 409 on a second review for the same booking. |",
             "item": [
                 {
                     "name": "Create",
                     "request": {
                         "method": "POST",
                         "header": [
-                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                            { "key": "Content-Type", "value": "application/json" }
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
                         ],
                         "body": {
                             "mode": "raw",
                             "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"rating\": 5,\n  \"comment\": \"Fixed the leak fast, very professional\"\n}"
                         },
-                        "url": { "raw": "{{baseUrl}}/api/reviews", "host": ["{{baseUrl}}"], "path": ["api", "reviews"] },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/reviews",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reviews"
+                            ]
+                        },
                         "description": "**Who can call this:** CUSTOMER only, and only the owner of the booking. Booking must be status `COMPLETED`. `rating` must be an integer 1-5. One review per booking (enforced by a unique constraint) — a second attempt returns 409."
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Technician Self-Service",
-            "item": [
-                {
-                    "name": "Update My Profile",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                            { "key": "Content-Type", "value": "application/json" }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"skills\": [\"plumbing\", \"pipe fitting\"],\n  \"experienceYears\": 8,\n  \"isAvailable\": true\n}"
-                        },
-                        "url": { "raw": "{{baseUrl}}/api/technician/profile", "host": ["{{baseUrl}}"], "path": ["api", "technician", "profile"] },
-                        "description": "**Who can call this:** TECHNICIAN only. All fields optional — send only what changes."
-                    }
-                },
-                {
-                    "name": "Update My Availability",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                            { "key": "Content-Type", "value": "application/json" }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"slots\": [\n    { \"dayOfWeek\": 1, \"startTime\": \"09:00\", \"endTime\": \"17:00\" },\n    { \"dayOfWeek\": 3, \"startTime\": \"10:00\", \"endTime\": \"18:00\" }\n  ]\n}"
-                        },
-                        "url": { "raw": "{{baseUrl}}/api/technician/availability", "host": ["{{baseUrl}}"], "path": ["api", "technician", "availability"] },
-                        "description": "**Who can call this:** TECHNICIAN only. Replaces the ENTIRE weekly schedule every time (not additive) — send the complete set of slots you want. `dayOfWeek`: 0=Sunday...6=Saturday. Times in 24h `HH:mm`."
-                    }
-                },
-                {
-                    "name": "Get My Bookings",
-                    "request": {
-                        "method": "GET",
-                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-                        "url": {
-                            "raw": "{{baseUrl}}/api/technician/bookings?page=1&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "technician", "bookings"],
-                            "query": [
-                                { "key": "page", "value": "1" },
-                                { "key": "limit", "value": "10" },
-                                { "key": "status", "value": "", "disabled": true }
-                            ]
-                        },
-                        "description": "**Who can call this:** TECHNICIAN only. Returns only bookings assigned to the logged-in technician."
-                    }
-                },
-                {
-                    "name": "Update Booking Status",
-                    "request": {
-                        "method": "PATCH",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                            { "key": "Content-Type", "value": "application/json" }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"status\": \"ACCEPTED\"\n}\n\n// This one endpoint drives the whole booking state machine -- swap the\n// \"status\" value depending on where the booking currently is:\n//\n//   current REQUESTED   -> \"ACCEPTED\" or \"DECLINED\"\n//   current PAID         -> \"IN_PROGRESS\"\n//   current IN_PROGRESS  -> \"COMPLETED\"\n//\n// Any other transition (e.g. REQUESTED straight to COMPLETED) is rejected\n// with a 400 that names exactly which transitions ARE legal right now."
-                        },
-                        "url": { "raw": "{{baseUrl}}/api/technician/bookings/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "technician", "bookings", "{{bookingId}}"] },
-                        "description": "**Who can call this:** TECHNICIAN only, and only the technician assigned to this booking (403 otherwise).\n\nSee the body comment for the full legal-transition table. This single endpoint replaces what would otherwise be four separate accept/decline/start/complete routes."
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Admin",
-            "item": [
-                {
-                    "name": "Get All Users",
-                    "request": {
-                        "method": "GET",
-                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-                        "url": {
-                            "raw": "{{baseUrl}}/api/admin/users?page=1&limit=20",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "admin", "users"],
-                            "query": [
-                                { "key": "page", "value": "1" },
-                                { "key": "limit", "value": "20" },
-                                { "key": "role", "value": "", "disabled": true },
-                                { "key": "searchTerm", "value": "", "disabled": true }
-                            ]
-                        },
-                        "description": "**Who can call this:** ADMIN only. Returns every user, any role, password always omitted."
-                    }
-                },
-                {
-                    "name": "Update User Status (ban/unban)",
-                    "request": {
-                        "method": "PATCH",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                            { "key": "Content-Type", "value": "application/json" }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"activeStatus\": \"BLOCKED\"\n}\n\n// To unban instead, use:\n// { \"activeStatus\": \"ACTIVE\" }"
-                        },
-                        "url": { "raw": "{{baseUrl}}/api/admin/users/{{customerId}}", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", "{{customerId}}"] },
-                        "description": "**Who can call this:** ADMIN only. Only toggles `activeStatus` — this is not a general user editor (name/email/role are not editable here, by design).\n\nDefaults to targeting `{{customerId}}` — change the URL's id to ban/unban a technician instead by pasting a different user id.\n\nVerified to take effect **immediately**: a banned user's already-issued access token stops working on their very next request, and they cannot log in again while blocked."
-                    }
-                },
-                {
-                    "name": "Get All Bookings",
-                    "request": {
-                        "method": "GET",
-                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-                        "url": {
-                            "raw": "{{baseUrl}}/api/admin/bookings?page=1&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "admin", "bookings"],
-                            "query": [
-                                { "key": "page", "value": "1" },
-                                { "key": "limit", "value": "10" },
-                                { "key": "status", "value": "", "disabled": true }
-                            ]
-                        },
-                        "description": "**Who can call this:** ADMIN only. Returns every booking in the system regardless of which customer/technician it belongs to."
-                    }
-                },
-                {
-                    "name": "Get All Categories",
-                    "request": {
-                        "method": "GET",
-                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-                        "url": { "raw": "{{baseUrl}}/api/admin/categories", "host": ["{{baseUrl}}"], "path": ["api", "admin", "categories"] },
-                        "description": "**Who can call this:** ADMIN only. Same data as the public `Categories > Get All` — exists so an admin dashboard doesn't need to hit the public route."
-                    }
-                },
-                {
-                    "name": "Create Category",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "type": "text/javascript",
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res && res.data && res.data.id) {",
-                                    "    pm.collectionVariables.set('categoryId', res.data.id);",
-                                    "    console.log('Saved categoryId: ' + res.data.id);",
-                                    "}"
-                                ]
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                            { "key": "Content-Type", "value": "application/json" }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Plumbing\",\n  \"description\": \"Pipe, sink, and drain repair\"\n}"
-                        },
-                        "url": { "raw": "{{baseUrl}}/api/admin/categories", "host": ["{{baseUrl}}"], "path": ["api", "admin", "categories"] },
-                        "description": "**Who can call this:** ADMIN only. Fails with 409 if a category with this exact `name` already exists. Saves the new category's id as `categoryId`."
                     }
                 }
             ]
