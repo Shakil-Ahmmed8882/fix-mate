@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { AuthServices } from "./auth.service";
+import { UserServices } from "../user/users.services";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -61,8 +62,20 @@ const logout = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getMe = catchAsync(async (req: Request, res: Response) => {
+    const user = await UserServices.getMyProfileFromDB(req.user!.email);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Current user retrieved successfully",
+        data: { user },
+    });
+});
+
 export const AuthController = {
     login,
     refreshToken,
     logout,
+    getMe,
 };
