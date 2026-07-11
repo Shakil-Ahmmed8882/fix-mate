@@ -4,8 +4,10 @@ import { auth } from "../../middlewares/auth.middleware.js";
 import { validateRequest } from "../../middlewares/validateRequest.middleware.js";
 import { Role } from "../../../generated/prisma/enums.js";
 import {
+    createServiceValidation,
     updateAvailabilityValidation,
     updateBookingStatusValidation,
+    updateServiceValidation,
     updateTechnicianProfileValidation,
 } from "./technicianManagement.validation.js";
 
@@ -30,5 +32,20 @@ router.patch(
     validateRequest(updateBookingStatusValidation),
     technicianManagementController.updateBookingStatus
 );
+
+// A technician owns their service listings — create, update, and delete them here.
+router.post(
+    "/services",
+    auth(Role.TECHNICIAN),
+    validateRequest(createServiceValidation),
+    technicianManagementController.createService
+);
+router.patch(
+    "/services/:id",
+    auth(Role.TECHNICIAN),
+    validateRequest(updateServiceValidation),
+    technicianManagementController.updateMyService
+);
+router.delete("/services/:id", auth(Role.TECHNICIAN), technicianManagementController.deleteMyService);
 
 export const technicianManagementRoutes = router;
