@@ -108,6 +108,7 @@ Users **select their role at registration** (`CUSTOMER` or `TECHNICIAN`). `ADMIN
 
 - Register and login as a technician
 - Create and update service profile (skills, experience, availability flag)
+- Create, update, and delete own service listings (title, price, category)
 - Set availability time slots (weekly schedule)
 - View incoming bookings
 - Accept or decline bookings
@@ -186,6 +187,9 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 |---|---|---|---|
 | `PUT` | `/api/technician/profile` | Technician | Update technician profile (skills, experience, availability) |
 | `PUT` | `/api/technician/availability` | Technician | Replace the weekly availability slots |
+| `POST` | `/api/technician/services` | Technician | Create a service the technician offers |
+| `PATCH` | `/api/technician/services/:id` | Technician (owner) | Update own service (title, price, category, active) |
+| `DELETE` | `/api/technician/services/:id` | Technician (owner) | Delete own service (deactivates if it has bookings) |
 | `GET` | `/api/technician/bookings` | Technician | Get the technician's assigned bookings |
 | `PATCH` | `/api/technician/bookings/:id` | Technician | Update booking status (accept / decline / start / complete) |
 
@@ -339,7 +343,8 @@ flowchart TD
 flowchart TD
     A([Register / Login as Technician]) --> B[Set up profile: skills, experience]
     B --> C[Set weekly availability slots]
-    C --> D[View incoming bookings]
+    C --> S[Create a service listing: title, price, category]
+    S --> D[View incoming bookings]
     D --> E{Accept or<br/>decline?}
     E -->|Decline| F([Booking DECLINED])
     E -->|Accept| G[Booking ACCEPTED — wait for payment]

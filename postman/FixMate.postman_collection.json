@@ -582,7 +582,7 @@
         },
         {
             "name": "Technicians",
-            "description": "# Technicians\n\nEverything about the technician as a resource — the public can browse them; a logged-in technician manages their own profile and weekly availability. Booking operations a technician performs live in the **Bookings** module (they act on bookings, not on the technician record).\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `GET` | `/api/technicians` | public | List active technicians (page/limit/searchTerm). |\n| `GET` | `/api/technicians/:id` | public | Get one technician with their active services and all reviews. |\n| `PUT` | `/api/technician/profile` | TECHNICIAN | Update own skills / experienceYears / isAvailable. All fields optional. |\n| `PUT` | `/api/technician/availability` | TECHNICIAN | Replace the ENTIRE weekly schedule (not additive). dayOfWeek 0=Sun..6=Sat, times HH:mm. |",
+            "description": "# Technicians\n\nEverything about the technician as a resource — the public can browse them; a logged-in technician manages their own profile, weekly availability, and **their own service listings** (create/update/delete). Booking operations a technician performs live in the **Bookings** module.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `GET` | `/api/technicians` | public | List active technicians (page/limit/searchTerm). |\n| `GET` | `/api/technicians/:id` | public | Get one technician with their active services and all reviews. |\n| `PUT` | `/api/technician/profile` | TECHNICIAN | Update own skills / experienceYears / isAvailable. All fields optional. |\n| `PUT` | `/api/technician/availability` | TECHNICIAN | Replace the ENTIRE weekly schedule (not additive). dayOfWeek 0=Sun..6=Sat, times HH:mm. |\n| `POST` | `/api/technician/services` | TECHNICIAN | Create a service listing (title, price, categoryId). Saves serviceId. |\n| `PATCH` | `/api/technician/services/:id` | TECHNICIAN (owner) | Update own service; 403 if not the owner. |\n| `DELETE` | `/api/technician/services/:id` | TECHNICIAN (owner) | Delete own service (deactivates instead if it has bookings). |",
             "item": [
                 {
                     "name": "Get All",
@@ -698,6 +698,111 @@
                             ]
                         },
                         "description": "**Who can call this:** TECHNICIAN only. Replaces the ENTIRE weekly schedule every time (not additive) — send the complete set of slots you want. `dayOfWeek`: 0=Sunday...6=Saturday. Times in 24h `HH:mm`."
+                    }
+                },
+                {
+                    "name": "Create Service (technician)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res && res.data && res.data.id) {",
+                                    "    pm.collectionVariables.set('serviceId', res.data.id);",
+                                    "    console.log('Saved serviceId: ' + res.data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Kitchen sink repair\",\n  \"description\": \"Fix leaks, clogs, and faucet issues\",\n  \"price\": 49.99,\n  \"categoryId\": \"{{categoryId}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technician/services",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technician",
+                                "services"
+                            ]
+                        },
+                        "description": "**Who can call this:** TECHNICIAN only.\n\nCreates a service the technician offers. `categoryId` must reference an existing category (404 otherwise). The service is owned by the logged-in technician. Saves the new id as `serviceId`."
+                    }
+                },
+                {
+                    "name": "Update Service (technician)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"price\": 59.99,\n  \"isActive\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technician/services/{{serviceId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technician",
+                                "services",
+                                "{{serviceId}}"
+                            ]
+                        },
+                        "description": "**Who can call this:** TECHNICIAN only, and only the owner of the service (403 otherwise). All fields optional — send only what changes. Changing `categoryId` re-validates the new category exists."
+                    }
+                },
+                {
+                    "name": "Delete Service (technician)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technician/services/{{serviceId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technician",
+                                "services",
+                                "{{serviceId}}"
+                            ]
+                        },
+                        "description": "**Who can call this:** TECHNICIAN only, and only the owner (403 otherwise). If the service has no bookings it is hard-deleted. If it has booking history it is **deactivated** (`isActive: false`) instead — so it disappears from public browsing while its bookings keep their record."
                     }
                 }
             ]
