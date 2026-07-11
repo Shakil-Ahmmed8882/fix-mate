@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import { prisma } from "../../lib/prisma";
 import { stripe } from "../../lib/stripe";
-import config from "../../config";
+import config from "../../config/index.js";
 import { AppError } from "../../utils/AppError";
 import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder";
 import type { ICreatePayment, IPaymentQuery } from "./payment.interface";

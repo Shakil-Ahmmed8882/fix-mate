@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../lib/prisma";
-import config from "../../config";
+import config from "../../config/index.js";
 import { AppError } from "../../utils/AppError";
 import type { IUpdatePassword, IUpdateProfile, IUser } from "./users.interface";
 
