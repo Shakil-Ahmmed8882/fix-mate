@@ -23,3 +23,22 @@ export const updateBookingStatusValidation = z.object({
         error: "status must be one of ACCEPTED, DECLINED, IN_PROGRESS, COMPLETED",
     }),
 });
+
+export const createServiceValidation = z.object({
+    title: z.string().min(1, "title is required").max(255),
+    description: z.string().optional(),
+    price: z.number().positive("price must be greater than 0"),
+    categoryId: z.string().min(1, "categoryId is required"),
+});
+
+export const updateServiceValidation = z
+    .object({
+        title: z.string().min(1).max(255).optional(),
+        description: z.string().optional(),
+        price: z.number().positive("price must be greater than 0").optional(),
+        categoryId: z.string().min(1).optional(),
+        isActive: z.boolean().optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0, {
+        message: "At least one field must be provided to update",
+    });
