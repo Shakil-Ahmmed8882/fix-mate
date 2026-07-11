@@ -24,4 +24,8 @@ export default {
     sslcommerz_store_id: process.env.SSLCOMMERZ_STORE_ID!,
     sslcommerz_store_password: process.env.SSLCOMMERZ_STORE_PASSWORD!,
     sslcommerz_is_live: process.env.SSLCOMMERZ_IS_LIVE === "true",
+
+    // seed admin
+    admin_email: process.env.ADMIN_EMAIL!,
+    admin_password: process.env.ADMIN_PASSWORD!,
 };
