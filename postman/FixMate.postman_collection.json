@@ -1,0 +1,696 @@
+{
+    "info": {
+        "_postman_id": "fixmate-api-collection",
+        "name": "FixMate API",
+        "description": "Full FixMate backend API — auth, user, public browse, booking, payment, review, technician self-service, and admin. Import the companion 'FixMate Local' environment alongside this collection. Login/register requests automatically capture accessToken/refreshToken and relevant IDs into environment variables, so you can run requests top-to-bottom without manually copying anything.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        { "key": "baseUrl", "value": "http://localhost:5000" }
+    ],
+    "item": [
+        {
+            "name": "01 - Auth",
+            "item": [
+                {
+                    "name": "Login (Customer)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res && res.data && res.data.accessToken) {",
+                                    "    pm.environment.set('accessToken', res.data.accessToken);",
+                                    "    pm.environment.set('refreshToken', res.data.refreshToken);",
+                                    "    pm.environment.set('customerId', res.data.user.id);",
+                                    "    console.log('Saved accessToken/refreshToken/customerId to environment');",
+                                    "}",
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"jane.customer@fixmate.dev\",\n  \"password\": \"Secret123!\"\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+                        "description": "Logs in the seeded customer account. Saves accessToken, refreshToken, and customerId to the environment automatically."
+                    }
+                },
+                {
+                    "name": "Login (Technician)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res && res.data && res.data.accessToken) {",
+                                    "    pm.environment.set('accessToken', res.data.accessToken);",
+                                    "    pm.environment.set('refreshToken', res.data.refreshToken);",
+                                    "    pm.environment.set('technicianId', res.data.user.id);",
+                                    "    console.log('Saved accessToken/refreshToken/technicianId to environment');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"sam.technician@fixmate.dev\",\n  \"password\": \"Secret123!\"\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+                        "description": "Logs in the seeded technician account. Overwrites accessToken/refreshToken in the environment with this technician's tokens, and saves technicianId."
+                    }
+                },
+                {
+                    "name": "Login (Admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res && res.data && res.data.accessToken) {",
+                                    "    pm.environment.set('accessToken', res.data.accessToken);",
+                                    "    pm.environment.set('refreshToken', res.data.refreshToken);",
+                                    "    pm.environment.set('adminId', res.data.user.id);",
+                                    "    console.log('Saved accessToken/refreshToken/adminId to environment');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@fixmate.dev\",\n  \"password\": \"Secret123!\"\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+                        "description": "Logs in the seeded admin account (there is no self-registration path for Admin — this account must be seeded directly). Overwrites accessToken/refreshToken with this admin's tokens."
+                    }
+                },
+                {
+                    "name": "Refresh Token",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res && res.data && res.data.accessToken) {",
+                                    "    pm.environment.set('accessToken', res.data.accessToken);",
+                                    "    console.log('Refreshed accessToken saved to environment');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": { "raw": "{{baseUrl}}/api/auth/refresh-token", "host": ["{{baseUrl}}"], "path": ["api", "auth", "refresh-token"] },
+                        "description": "Reads the refreshToken cookie set by login. If you're using the Authorization header flow instead of cookies, this endpoint still works as long as Postman's cookie jar has the refreshToken cookie from a prior login in this browser/session."
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"] },
+                        "description": "Clears the accessToken/refreshToken cookies server-side."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "02 - User",
+            "item": [
+                {
+                    "name": "Register (Customer)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res && res.data && res.data.user) {",
+                                    "    pm.environment.set('customerId', res.data.user.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Jane Customer\",\n  \"email\": \"jane.customer@fixmate.dev\",\n  \"password\": \"Secret123!\",\n  \"phone\": \"+8801700000000\"\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/users/register", "host": ["{{baseUrl}}"], "path": ["api", "users", "register"] },
+                        "description": "role omitted -> defaults to CUSTOMER. Run 'Login (Customer)' next to get tokens (register does not auto-login)."
+                    }
+                },
+                {
+                    "name": "Register (Technician)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res && res.data && res.data.user) {",
+                                    "    pm.environment.set('technicianId', res.data.user.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Sam Technician\",\n  \"email\": \"sam.technician@fixmate.dev\",\n  \"password\": \"Secret123!\",\n  \"phone\": \"+8801700000001\",\n  \"role\": \"TECHNICIAN\"\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/users/register", "host": ["{{baseUrl}}"], "path": ["api", "users", "register"] },
+                        "description": "role: TECHNICIAN also auto-creates an empty TechnicianProfile. Run 'Login (Technician)' next."
+                    }
+                },
+                {
+                    "name": "Get My Profile (me)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "url": { "raw": "{{baseUrl}}/api/users/me", "host": ["{{baseUrl}}"], "path": ["api", "users", "me"] },
+                        "description": "Works for any logged-in role — whoever's accessToken is currently saved in the environment."
+                    }
+                },
+                {
+                    "name": "Update My Profile",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"bio\": \"I need my sink fixed\",\n  \"address\": \"Dhaka, BD\",\n  \"phone\": \"+8801700000099\"\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/users/update-profile", "host": ["{{baseUrl}}"], "path": ["api", "users", "update-profile"] }
+                    }
+                },
+                {
+                    "name": "Update My Password",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"oldPassword\": \"Secret123!\",\n  \"newPassword\": \"NewSecret123!\"\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/users/update-password", "host": ["{{baseUrl}}"], "path": ["api", "users", "update-password"] },
+                        "description": "After running this, the login body's password will be stale — update it or log in with NewSecret123! afterward."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "03 - Public Browse",
+            "item": [
+                {
+                    "name": "Get All Categories",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/categories?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "categories"],
+                            "query": [
+                                { "key": "page", "value": "1" },
+                                { "key": "limit", "value": "10" },
+                                { "key": "searchTerm", "value": "", "disabled": true }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get All Services",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/services?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "services"],
+                            "query": [
+                                { "key": "page", "value": "1" },
+                                { "key": "limit", "value": "10" },
+                                { "key": "categoryId", "value": "{{categoryId}}", "disabled": true },
+                                { "key": "searchTerm", "value": "", "disabled": true }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Single Service",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": { "raw": "{{baseUrl}}/api/services/{{serviceId}}", "host": ["{{baseUrl}}"], "path": ["api", "services", "{{serviceId}}"] }
+                    }
+                },
+                {
+                    "name": "Get All Technicians",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technicians?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "technicians"],
+                            "query": [
+                                { "key": "page", "value": "1" },
+                                { "key": "limit", "value": "10" },
+                                { "key": "searchTerm", "value": "", "disabled": true }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Single Technician (with reviews)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": { "raw": "{{baseUrl}}/api/technicians/{{technicianId}}", "host": ["{{baseUrl}}"], "path": ["api", "technicians", "{{technicianId}}"] }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "04 - Booking (Customer)",
+            "item": [
+                {
+                    "name": "Create Booking",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res && res.data && res.data.id) {",
+                                    "    pm.environment.set('bookingId', res.data.id);",
+                                    "    console.log('Saved bookingId to environment: ' + res.data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"serviceId\": \"{{serviceId}}\",\n  \"scheduledAt\": \"2026-08-15T10:00:00.000Z\",\n  \"note\": \"Leaking kitchen sink\"\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/bookings", "host": ["{{baseUrl}}"], "path": ["api", "bookings"] },
+                        "description": "Must be logged in as CUSTOMER. serviceId must reference an existing, active Service. Saves the new booking's id as bookingId."
+                    }
+                },
+                {
+                    "name": "Get My Bookings",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/bookings?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "bookings"],
+                            "query": [
+                                { "key": "page", "value": "1" },
+                                { "key": "limit", "value": "10" },
+                                { "key": "status", "value": "", "disabled": true }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Single Booking",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "url": { "raw": "{{baseUrl}}/api/bookings/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "{{bookingId}}"] }
+                    }
+                },
+                {
+                    "name": "Cancel Booking",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "url": { "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "{{bookingId}}", "cancel"] },
+                        "description": "Only allowed while status is REQUESTED, ACCEPTED, or PAID. Fails with 400 once IN_PROGRESS or later."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "05 - Payment (Customer)",
+            "item": [
+                {
+                    "name": "Create Payment (Stripe Checkout)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res && res.data && res.data.payment) {",
+                                    "    pm.environment.set('paymentId', res.data.payment.id);",
+                                    "    console.log('Checkout URL: ' + res.data.checkoutUrl);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"bookingId\": \"{{bookingId}}\"\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/payments/create", "host": ["{{baseUrl}}"], "path": ["api", "payments", "create"] },
+                        "description": "Booking must be status ACCEPTED. Returns a real Stripe test-mode checkoutUrl — open it in a browser and pay with card 4242 4242 4242 4242 to complete it."
+                    }
+                },
+                {
+                    "name": "Confirm Payment (Stripe Webhook)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "stripe-signature", "value": "PASTE_FROM_STRIPE_CLI" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/payments/confirm", "host": ["{{baseUrl}}"], "path": ["api", "payments", "confirm"] },
+                        "description": "This is a Stripe webhook endpoint — it is NOT meant to be called by hand from Postman. Its signature check will reject any manually-typed body. Use the Stripe CLI instead: run `npm run stripe:webhook` in the project, then complete a real test payment via the checkoutUrl from 'Create Payment'. This request is included only for reference / documentation, not for manual testing."
+                    }
+                },
+                {
+                    "name": "Get My Payments",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/payments?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "payments"],
+                            "query": [
+                                { "key": "page", "value": "1" },
+                                { "key": "limit", "value": "10" },
+                                { "key": "status", "value": "", "disabled": true }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Single Payment",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "url": { "raw": "{{baseUrl}}/api/payments/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["api", "payments", "{{paymentId}}"] }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "06 - Review (Customer)",
+            "item": [
+                {
+                    "name": "Create Review",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"rating\": 5,\n  \"comment\": \"Fixed the leak fast, very professional\"\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/reviews", "host": ["{{baseUrl}}"], "path": ["api", "reviews"] },
+                        "description": "Booking must be status COMPLETED. rating must be an integer 1-5. One review per booking (enforced by a unique constraint)."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "07 - Technician Self-Service",
+            "item": [
+                {
+                    "name": "Update My Technician Profile",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"skills\": [\"plumbing\", \"pipe fitting\"],\n  \"experienceYears\": 8,\n  \"isAvailable\": true\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/technician/profile", "host": ["{{baseUrl}}"], "path": ["api", "technician", "profile"] },
+                        "description": "Must be logged in as TECHNICIAN. All fields optional — send only what changes."
+                    }
+                },
+                {
+                    "name": "Update My Availability",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"slots\": [\n    { \"dayOfWeek\": 1, \"startTime\": \"09:00\", \"endTime\": \"17:00\" },\n    { \"dayOfWeek\": 3, \"startTime\": \"10:00\", \"endTime\": \"18:00\" }\n  ]\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/technician/availability", "host": ["{{baseUrl}}"], "path": ["api", "technician", "availability"] },
+                        "description": "Replaces the ENTIRE weekly schedule every time (not additive). dayOfWeek: 0=Sunday...6=Saturday. Times in 24h HH:mm."
+                    }
+                },
+                {
+                    "name": "Get My Bookings (Technician)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technician/bookings?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "technician", "bookings"],
+                            "query": [
+                                { "key": "page", "value": "1" },
+                                { "key": "limit", "value": "10" },
+                                { "key": "status", "value": "", "disabled": true }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Accept Booking",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": { "mode": "raw", "raw": "{\n  \"status\": \"ACCEPTED\"\n}" },
+                        "url": { "raw": "{{baseUrl}}/api/technician/bookings/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "technician", "bookings", "{{bookingId}}"] },
+                        "description": "Only legal when the booking is currently REQUESTED."
+                    }
+                },
+                {
+                    "name": "Decline Booking",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": { "mode": "raw", "raw": "{\n  \"status\": \"DECLINED\"\n}" },
+                        "url": { "raw": "{{baseUrl}}/api/technician/bookings/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "technician", "bookings", "{{bookingId}}"] },
+                        "description": "Only legal when the booking is currently REQUESTED. Mutually exclusive with Accept — use on a different test booking than the one you accepted."
+                    }
+                },
+                {
+                    "name": "Start Job (In Progress)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": { "mode": "raw", "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}" },
+                        "url": { "raw": "{{baseUrl}}/api/technician/bookings/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "technician", "bookings", "{{bookingId}}"] },
+                        "description": "Only legal when the booking is currently PAID (customer must have completed payment first)."
+                    }
+                },
+                {
+                    "name": "Complete Job",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": { "mode": "raw", "raw": "{\n  \"status\": \"COMPLETED\"\n}" },
+                        "url": { "raw": "{{baseUrl}}/api/technician/bookings/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "technician", "bookings", "{{bookingId}}"] },
+                        "description": "Only legal when the booking is currently IN_PROGRESS. Once COMPLETED, the customer can leave a review."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "08 - Admin",
+            "item": [
+                {
+                    "name": "Get All Users",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/users?page=1&limit=20",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "users"],
+                            "query": [
+                                { "key": "page", "value": "1" },
+                                { "key": "limit", "value": "20" },
+                                { "key": "role", "value": "", "disabled": true },
+                                { "key": "searchTerm", "value": "", "disabled": true }
+                            ]
+                        },
+                        "description": "Must be logged in as ADMIN."
+                    }
+                },
+                {
+                    "name": "Ban User",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": { "mode": "raw", "raw": "{\n  \"activeStatus\": \"BLOCKED\"\n}" },
+                        "url": { "raw": "{{baseUrl}}/api/admin/users/{{customerId}}", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", "{{customerId}}"] },
+                        "description": "Takes effect immediately — the banned user's existing access token stops working on their very next request."
+                    }
+                },
+                {
+                    "name": "Unban User",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": { "mode": "raw", "raw": "{\n  \"activeStatus\": \"ACTIVE\"\n}" },
+                        "url": { "raw": "{{baseUrl}}/api/admin/users/{{customerId}}", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", "{{customerId}}"] }
+                    }
+                },
+                {
+                    "name": "Get All Bookings (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/bookings?page=1&limit=10",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "bookings"],
+                            "query": [
+                                { "key": "page", "value": "1" },
+                                { "key": "limit", "value": "10" },
+                                { "key": "status", "value": "", "disabled": true }
+                            ]
+                        },
+                        "description": "Returns every booking in the system, regardless of which customer/technician it belongs to."
+                    }
+                },
+                {
+                    "name": "Get All Categories (Admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+                        "url": { "raw": "{{baseUrl}}/api/admin/categories", "host": ["{{baseUrl}}"], "path": ["api", "admin", "categories"] }
+                    }
+                },
+                {
+                    "name": "Create Category",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res && res.data && res.data.id) {",
+                                    "    pm.environment.set('categoryId', res.data.id);",
+                                    "    console.log('Saved categoryId to environment: ' + res.data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Plumbing\",\n  \"description\": \"Pipe, sink, and drain repair\"\n}"
+                        },
+                        "url": { "raw": "{{baseUrl}}/api/admin/categories", "host": ["{{baseUrl}}"], "path": ["api", "admin", "categories"] },
+                        "description": "Fails with 409 if a category with this exact name already exists. Saves the new category's id as categoryId."
+                    }
+                }
+            ]
+        }
+    ]
+}
