@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import type { JwtPayload } from "jsonwebtoken";
-import config from "../config";
+import config from "../config/index.js";
 import { prisma } from "../lib/prisma";
 import { verifyToken } from "../utils/jwt";
 import { AppError } from "../utils/AppError";
