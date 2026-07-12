@@ -26,6 +26,17 @@ const updateAvailability = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getMyAvailability = catchAsync(async (req: Request, res: Response) => {
+    const slots = await TechnicianManagementServices.getMyAvailabilityFromDB(req.user!.userId);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Availability retrieved successfully",
+        data: slots,
+    });
+});
+
 const getMyBookings = catchAsync(async (req: Request, res: Response) => {
     const { data, meta } = await TechnicianManagementServices.getMyBookingsFromDB(
         req.user!.userId,
@@ -101,6 +112,7 @@ const deleteMyService = catchAsync(async (req: Request, res: Response) => {
 export const technicianManagementController = {
     updateMyProfile,
     updateAvailability,
+    getMyAvailability,
     getMyBookings,
     updateBookingStatus,
     createService,

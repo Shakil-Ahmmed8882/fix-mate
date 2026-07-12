@@ -1,6 +1,12 @@
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder.js";
+import {
+    formatSlotHuman,
+    parseAmPmTo24,
+    toRichSlot,
+    todayDateOnly,
+} from "../../utils/time.js";
 import type {
     IAvailabilitySlotInput,
     ICreateService,
@@ -43,6 +49,8 @@ const updateMyProfileIntoDB = async (userId: string, payload: IUpdateTechnicianP
     return updated;
 };
 
+const availabilityOrderBy = [{ date: "asc" as const }, { startTime: "asc" as const }];
+
 const replaceAvailabilityInDB = async (userId: string, payload: IUpdateAvailability) => {
     const technicianProfile = await prisma.technicianProfile.findUnique({ where: { userId } });
 
@@ -50,7 +58,9 @@ const replaceAvailabilityInDB = async (userId: string, payload: IUpdateAvailabil
         throw new AppError(404, "Technician profile does not exist");
     }
 
-    validateSlots(payload.slots);
+    // Semantic checks (past date, overlap) run BEFORE the transaction, so a bad
+    // payload never wipes the technician's existing slots.
+    detectSemanticSlotErrors(payload.slots);
 
     const slots = await prisma.$transaction(async (tx) => {
         await tx.availabilitySlot.deleteMany({ where: { technicianProfileId: technicianProfile.id } });
@@ -58,34 +68,83 @@ const replaceAvailabilityInDB = async (userId: string, payload: IUpdateAvailabil
         await tx.availabilitySlot.createMany({
             data: payload.slots.map((slot) => ({
                 technicianProfileId: technicianProfile.id,
-                dayOfWeek: slot.dayOfWeek,
-                startTime: slot.startTime,
-                endTime: slot.endTime,
+                date: new Date(`${slot.date}T00:00:00Z`),
+                startTime: parseAmPmTo24(slot.startTime),
+                endTime: parseAmPmTo24(slot.endTime),
             })),
         });
 
         return tx.availabilitySlot.findMany({
             where: { technicianProfileId: technicianProfile.id },
-            orderBy: { dayOfWeek: "asc" },
+            orderBy: availabilityOrderBy,
         });
     });
 
-    return slots;
+    return slots.map(toRichSlot);
 };
 
-const validateSlots = (slots: IAvailabilitySlotInput[]) => {
-    const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+const getMyAvailabilityFromDB = async (userId: string) => {
+    const technicianProfile = await prisma.technicianProfile.findUnique({ where: { userId } });
 
-    for (const slot of slots) {
-        if (slot.dayOfWeek < 0 || slot.dayOfWeek > 6) {
-            throw new AppError(400, "dayOfWeek must be between 0 (Sunday) and 6 (Saturday)");
+    if (!technicianProfile) {
+        throw new AppError(404, "Technician profile does not exist");
+    }
+
+    const slots = await prisma.availabilitySlot.findMany({
+        where: { technicianProfileId: technicianProfile.id },
+        orderBy: availabilityOrderBy,
+    });
+
+    return slots.map(toRichSlot);
+};
+
+// Structural checks (date/time format, endTime > startTime, min 1) live in zod.
+// This handles the two semantic rules that need runtime state and a readable,
+// slot-naming error: no past dates, and no overlaps within the submitted set.
+const detectSemanticSlotErrors = (slots: IAvailabilitySlotInput[]) => {
+    // 1. Past dates — reject any slot dated before the server's today.
+    const today = todayDateOnly();
+    const pastSlots = slots.filter((slot) => new Date(`${slot.date}T00:00:00Z`) < today);
+    if (pastSlots.length > 0) {
+        throw new AppError(
+            400,
+            "Slot date is in the past",
+            pastSlots.map((slot) => ({
+                slot: formatSlotHuman(slot.date, parseAmPmTo24(slot.startTime), parseAmPmTo24(slot.endTime)),
+            }))
+        );
+    }
+
+    // 2. Overlaps — two slots conflict if they share a date and their [start, end)
+    // time ranges intersect. Sort so conflicts sit next to each other, then check
+    // every same-date pair and collect ALL conflicting pairs (not just the first)
+    // so the tester sees exactly which slots collided.
+    const normalized = slots
+        .map((slot) => ({
+            date: slot.date,
+            start: parseAmPmTo24(slot.startTime),
+            end: parseAmPmTo24(slot.endTime),
+        }))
+        .sort((a, b) => (a.date === b.date ? a.start.localeCompare(b.start) : a.date.localeCompare(b.date)));
+
+    const conflicts: { slot: string; conflictsWith: string }[] = [];
+    for (let i = 0; i < normalized.length; i++) {
+        const a = normalized[i]!;
+        for (let j = i + 1; j < normalized.length; j++) {
+            const b = normalized[j]!;
+            if (a.date !== b.date) break; // sorted — no more same-date slots ahead
+            // half-open [start, end): touching endpoints (12:00 end / 12:00 start) do NOT overlap
+            if (a.start < b.end && b.start < a.end) {
+                conflicts.push({
+                    slot: formatSlotHuman(a.date, a.start, a.end),
+                    conflictsWith: formatSlotHuman(b.date, b.start, b.end),
+                });
+            }
         }
-        if (!timePattern.test(slot.startTime) || !timePattern.test(slot.endTime)) {
-            throw new AppError(400, "startTime/endTime must be in HH:mm 24-hour format");
-        }
-        if (slot.startTime >= slot.endTime) {
-            throw new AppError(400, "startTime must be earlier than endTime");
-        }
+    }
+
+    if (conflicts.length > 0) {
+        throw new AppError(400, "Slot overlaps with an existing slot", conflicts);
     }
 };
 
@@ -230,6 +289,7 @@ const deleteMyServiceFromDB = async (technicianId: string, serviceId: string) =>
 export const TechnicianManagementServices = {
     updateMyProfileIntoDB,
     replaceAvailabilityInDB,
+    getMyAvailabilityFromDB,
     getMyBookingsFromDB,
     updateBookingStatusIntoDB,
     createServiceIntoDB,

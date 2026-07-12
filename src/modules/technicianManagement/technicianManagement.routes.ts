@@ -19,6 +19,7 @@ router.put(
     validateRequest(updateTechnicianProfileValidation),
     technicianManagementController.updateMyProfile
 );
+router.get("/availability", auth(Role.TECHNICIAN), technicianManagementController.getMyAvailability);
 router.put(
     "/availability",
     auth(Role.TECHNICIAN),
