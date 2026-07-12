@@ -1,8 +1,11 @@
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../utils/AppError.js";
 import { buildMeta, buildPrismaQuery } from "../../utils/queryBuilder.js";
+import { toRichSlot } from "../../utils/time.js";
 import type { ITechnicianQuery } from "./technician.interface.js";
 
+// List stays lean (no slots) to keep payloads small; the single-technician read
+// nests availability so a customer can see when that technician is free.
 const technicianListInclude = {
     profile: true,
     technicianProfile: true,
@@ -44,7 +47,14 @@ const getSingleTechnicianFromDB = async (id: string) => {
         where: { id, role: "TECHNICIAN" },
         omit: { password: true },
         include: {
-            ...technicianListInclude,
+            profile: true,
+            technicianProfile: {
+                include: {
+                    availabilitySlots: {
+                        orderBy: [{ date: "asc" }, { startTime: "asc" }],
+                    },
+                },
+            },
             servicesOffered: { where: { isActive: true } },
             reviewsReceived: {
                 include: {
@@ -57,6 +67,18 @@ const getSingleTechnicianFromDB = async (id: string) => {
 
     if (!technician) {
         throw new AppError(404, "Technician does not exist");
+    }
+
+    // Expand the stored 24h slots into the rich (display + dropdown) shape so the
+    // public read matches the technician's own GET /api/technician/availability.
+    if (technician.technicianProfile) {
+        return {
+            ...technician,
+            technicianProfile: {
+                ...technician.technicianProfile,
+                availabilitySlots: technician.technicianProfile.availabilitySlots.map(toRichSlot),
+            },
+        };
     }
 
     return technician;
