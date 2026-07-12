@@ -35,10 +35,19 @@ export const updateAvailabilityValidation = z.object({
                     startTime: z.string().regex(timePattern12, 'startTime must be like "09:00 AM"'),
                     endTime: z.string().regex(timePattern12, 'endTime must be like "05:00 PM"'),
                 })
-                .refine((slot) => parseAmPmTo24(slot.endTime) > parseAmPmTo24(slot.startTime), {
-                    message: "endTime must be after startTime",
-                    path: ["endTime"],
-                })
+                // An object-level refine still runs even when the field regexes
+                // above failed, so guard the parse — a malformed time should
+                // surface as the regex error, not throw here.
+                .refine(
+                    (slot) => {
+                        try {
+                            return parseAmPmTo24(slot.endTime) > parseAmPmTo24(slot.startTime);
+                        } catch {
+                            return true; // let the field-level regex report the format error
+                        }
+                    },
+                    { message: "endTime must be after startTime", path: ["endTime"] }
+                )
         )
         .min(1, "Provide at least one slot (this replaces all existing slots)."),
 });
