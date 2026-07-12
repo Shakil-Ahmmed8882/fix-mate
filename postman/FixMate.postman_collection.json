@@ -2,7 +2,7 @@
     "info": {
         "_postman_id": "fixmate-api-collection",
         "name": "FixMate API",
-        "description": "# FixMate API\n\n**FixMate is a home-services marketplace.** A customer browses service categories, picks a technician's service, and books a time. The technician accepts the request; the customer pays for it through **Stripe Checkout**; the technician then carries the job through to completion, and the customer leaves a review. Admins oversee the whole system — they manage users, categories, and every booking.\n\nPayments are handled with **Stripe** (test mode) end to end — a real Checkout session is created and a signed Stripe webhook confirms it.\n\n---\n\n## How this collection is organised (by module, not by role)\n\nEvery folder is a **resource/module**, and it contains **all** operations on that resource — create, read, update, delete, and the role-restricted ones — together in one place. You never leave the `Categories` folder to create a category, or hop to an `Admin` folder to see all bookings. Which role a request needs is written on each request; the grouping stays by module.\n\nEach folder's **description** (this info panel, one level down) lists its endpoints in a small table: method, path, who can call it, and what it does. Open a folder to see its module doc.\n\n---\n\n## Roles — who can do what\n\n| Capability | Customer | Technician | Admin |\n|---|:---:|:---:|:---:|\n| Register / login / manage own profile & password | ✅ | ✅ | login only |\n| Browse categories / services / technicians | ✅ | ✅ | ✅ |\n| Create a booking | ✅ | — | — |\n| Cancel own booking (before IN_PROGRESS) | ✅ | — | — |\n| Pay for a booking (Stripe) | ✅ | — | — |\n| Review a completed booking | ✅ | — | — |\n| See own bookings | ✅ (as customer) | ✅ (assigned) | — |\n| Accept / decline / progress / complete a booking | — | ✅ | — |\n| Manage own technician profile & availability | — | ✅ | — |\n| See ALL users / bookings | — | — | ✅ |\n| Ban / unban a user | — | — | ✅ |\n| Create categories | — | — | ✅ |\n\n---\n\n## Seeded accounts (run `npm run seed` once against the target database)\n\n| Role | Email | Password |\n|---|---|---|\n| Admin | `admin@fixmate.dev` (or your `ADMIN_EMAIL`) | your `ADMIN_PASSWORD` |\n| Technician (sample) | `sam.technician@fixmate.dev` | `Secret123!` |\n\nThe seed also creates a `Plumbing` category and a `Kitchen sink repair` service under the sample technician, so `Bookings > Create` has something real to book immediately.\n\n---\n\n## Variables & auth\n\nAll variables (`baseUrl`, `accessToken`, `bookingId`, …) are **collection-scoped** — they live only inside this collection and won't collide with any other project's Postman globals. Just import and run; no separate environment file.\n\n`Login` and `Register` auto-save the tokens and the relevant id into collection variables via a Test script, and every protected request sends `Authorization: Bearer {{accessToken}}` — you never copy a token by hand. Run `Login` for whichever role you want to act as; it overwrites `accessToken` for subsequent requests. `Bookings > Create`, `Payments > Create`, and `Categories > Create` similarly save `bookingId` / `paymentId` / `categoryId`.\n\n---\n\n## A full run-through\n\n1. **User > Register** (or use a seeded account), then **Auth > Login** as that role.\n2. **Categories / Services / Technicians > Get All** — browse (public).\n3. **Bookings > Create** (as customer) → login as the technician → **Bookings > Update Status (technician)** = `ACCEPTED`.\n4. Login as the customer → **Payments > Create** → pay the returned `checkoutUrl` with Stripe test card `4242 4242 4242 4242`.\n5. Login as technician → push status `IN_PROGRESS` → `COMPLETED`.\n6. Login as customer → **Reviews > Create**.\n7. Login as admin → **User / Bookings > Get All (admin)** to oversee everything.\n\n---\n\n## Error shape\n\nEvery error returns the same JSON:\n```json\n{ \"success\": false, \"message\": \"...\", \"errorDetails\": null }\n```\nValidation failures populate `errorDetails` with a list of `{ field, message }`.\n",
+        "description": "# FixMate API\n\n**FixMate is a home-services marketplace.** A customer browses service categories, picks a technician's service, and books a time. The technician accepts the request; the customer pays for it through **Stripe Checkout**; the technician then carries the job through to completion, and the customer leaves a review. Admins oversee the whole system — they manage users, categories, and every booking.\n\nPayments are handled with **Stripe** (test mode) end to end — a real Checkout session is created and a signed Stripe webhook confirms it.\n\n---\n\n## How this collection is organised (by module, not by role)\n\nEvery folder is a **resource/module**, and it contains **all** operations on that resource — create, read, update, delete, and the role-restricted ones — together in one place. You never leave the `Categories` folder to create a category, or hop to an `Admin` folder to see all bookings. Which role a request needs is written on each request; the grouping stays by module.\n\nEach folder's **description** (this info panel, one level down) lists its endpoints in a small table: method, path, who can call it, and what it does. Open a folder to see its module doc.\n\n---\n\n## Roles — who can do what\n\n| Capability | Customer | Technician | Admin |\n|---|:---:|:---:|:---:|\n| Register / login / manage own profile & password | ✅ | ✅ | login only |\n| Browse categories / services / technicians | ✅ | ✅ | ✅ |\n| Create a booking | ✅ | — | — |\n| Cancel own booking (before IN_PROGRESS) | ✅ | — | — |\n| Pay for a booking (Stripe) | ✅ | — | — |\n| Review a completed booking | ✅ | — | — |\n| See own bookings | ✅ (as customer) | ✅ (assigned) | — |\n| Accept / decline / progress / complete a booking | — | ✅ | — |\n| Manage own technician profile & availability | — | ✅ | — |\n| See ALL users / bookings | — | — | ✅ |\n| Ban / unban a user | — | — | ✅ |\n| Create categories | — | — | ✅ |\n\n---\n\n## Seeded accounts (run `npm run seed` once against the target database)\n\n| Role | Email | Password |\n|---|---|---|\n| Admin | `admin@fixmate.dev` (or your `ADMIN_EMAIL`) | your `ADMIN_PASSWORD` |\n| Technician (sample) | `sam.technician@fixmate.dev` | `Secret123!` |\n\nThe seed also creates a `Plumbing` category and a `Kitchen sink repair` service under the sample technician, so `Bookings > Create` has something real to book immediately.\n\n---\n\n## Variables & auth\n\nAll variables (`baseUrl`, `accessToken`, `bookingId`, …) are **collection-scoped** — they live only inside this collection and won't collide with any other project's Postman globals. Just import and run; no separate environment file.\n\n`Login` and `Register` auto-save the tokens and the relevant id into collection variables via a Test script, and every protected request sends `Authorization: Bearer {{accessToken}}` — you never copy a token by hand. Run `Login` for whichever role you want to act as; it overwrites `accessToken` for subsequent requests. `Bookings > Create`, `Payments > Create`, and `Categories > Create` similarly save `bookingId` / `paymentId` / `categoryId`.\n\n---\n\n## A full run-through\n\n1. **User > Register** (or use a seeded account), then **Auth > Login** as that role.\n2. **Categories / Services > Get All (public)** and **User > Get All Technicians (public)** — browse.\n3. **Bookings > Create** (as customer) → login as the technician → **Bookings > Update Status (technician)** = `ACCEPTED`.\n4. Login as the customer → **Payments > Create** → pay the returned `checkoutUrl` with Stripe test card `4242 4242 4242 4242`.\n5. Login as technician → push status `IN_PROGRESS` → `COMPLETED`.\n6. Login as customer → **Reviews > Create**.\n7. Login as admin → **User / Bookings > Get All (admin)** to oversee everything.\n\n---\n\n## Error shape\n\nEvery error returns the same JSON:\n```json\n{ \"success\": false, \"message\": \"...\", \"errorDetails\": null }\n```\nValidation failures populate `errorDetails` with a list of `{ field, message }`.\n",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
@@ -60,7 +60,7 @@
     "item": [
         {
             "name": "Auth",
-            "description": "# Auth (session lifecycle)\n\nEverything about starting, refreshing, and ending a login session. Registering a new account lives in the **User** module (it creates the user record); this folder is about tokens for an account that already exists.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/auth/login` | public | Exchange email + password for access + refresh tokens. Auto-saves both tokens and the matching id into collection variables. |\n| `POST` | `/api/auth/refresh-token` | anyone with a valid refresh cookie | Issue a fresh access token from the refresh cookie (refresh token itself is not rotated). |\n| `POST` | `/api/auth/logout` | public | Clear the access/refresh cookies server-side. |\n| `GET` | `/api/auth/me` | any logged-in user | Return the currently authenticated account. |",
+            "description": "# Auth\n\nSession lifecycle for an existing account: log in, refresh the token, log out, read the current user. Creating an account is in **User** (it creates the user record).\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/auth/login` | public | Exchange email + password for access + refresh tokens (auto-saved). |\n| `POST` | `/api/auth/refresh-token` | valid refresh cookie | Issue a new access token. |\n| `POST` | `/api/auth/logout` | public | Clear the auth cookies. |\n| `GET` | `/api/auth/me` | any logged-in user | Return the authenticated account. |",
             "item": [
                 {
                     "name": "Login",
@@ -194,10 +194,10 @@
         },
         {
             "name": "User",
-            "description": "# User (the account resource)\n\nEverything that acts on a **user record** — creating one (register), a user managing their own profile/password, and an admin managing any user. Grouped here so you never leave this folder to test the full user lifecycle, whatever role is calling.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/users/register` | public | Create a CUSTOMER (default) or TECHNICIAN account. Registering a technician also auto-creates an empty technician profile. Does not auto-login. |\n| `GET` | `/api/users/me` | any logged-in user | Return the logged-in user's own profile. |\n| `PATCH` | `/api/users/update-profile` | any logged-in user | Update own name/phone (user row) and bio/photo/address (profile row). All fields optional. |\n| `PATCH` | `/api/users/update-password` | any logged-in user | Change own password (needs oldPassword + newPassword). |\n| `GET` | `/api/admin/users` | ADMIN | List every user of any role (passwords never returned). Supports page/limit/role/searchTerm. |\n| `PATCH` | `/api/admin/users/:id` | ADMIN | Ban (activeStatus BLOCKED) or unban (ACTIVE) any user. Takes effect immediately on their next request. |",
+            "description": "# User\n\nEvery operation on a **user record** — whoever performs it. Self-service (any role), a technician editing their own technician-profile & availability, admin user-management, and the public browsing of technician users. Role is noted per request in `(parentheses)`; it is never a separate folder.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/users/register` | public | Create a CUSTOMER (default) or TECHNICIAN account. |\n| `GET` | `/api/users/me` | any logged-in user | Return own profile. |\n| `PATCH` | `/api/users/update-profile` | any logged-in user | Update own name/phone + bio/photo/address. |\n| `PATCH` | `/api/users/update-password` | any logged-in user | Change own password. |\n| `PUT` | `/api/technician/profile` | technician | Update own technician profile (skills, experience, availability flag). |\n| `PUT` | `/api/technician/availability` | technician | Replace own weekly availability schedule. |\n| `GET` | `/api/technicians` | public | Browse all active technician users. |\n| `GET` | `/api/technicians/:id` | public | Get one technician user with services + reviews. |\n| `GET` | `/api/admin/users` | admin | List every user of any role. |\n| `PATCH` | `/api/admin/users/:id` | admin | Ban / unban a user (immediate). |",
             "item": [
                 {
-                    "name": "Register",
+                    "name": "Register (public)",
                     "event": [
                         {
                             "listen": "test",
@@ -241,7 +241,7 @@
                     }
                 },
                 {
-                    "name": "Get My Profile (me)",
+                    "name": "Get My Profile (any role)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -265,7 +265,7 @@
                     }
                 },
                 {
-                    "name": "Update My Profile",
+                    "name": "Update My Profile (any role)",
                     "request": {
                         "method": "PATCH",
                         "header": [
@@ -297,7 +297,7 @@
                     }
                 },
                 {
-                    "name": "Update My Password",
+                    "name": "Update My Password (any role)",
                     "request": {
                         "method": "PATCH",
                         "header": [
@@ -326,6 +326,122 @@
                             ]
                         },
                         "description": "**Who can call this:** any authenticated user, any role. After running this, `Auth > Login`'s saved password will be stale for this account — log in with `NewSecret123!` afterward, or skip this request during a full run-through."
+                    }
+                },
+                {
+                    "name": "Update Technician Profile (technician)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"skills\": [\"plumbing\", \"pipe fitting\"],\n  \"experienceYears\": 8,\n  \"isAvailable\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technician/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technician",
+                                "profile"
+                            ]
+                        },
+                        "description": "**Who can call this:** TECHNICIAN only. All fields optional — send only what changes."
+                    }
+                },
+                {
+                    "name": "Update Availability (technician)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"slots\": [\n    { \"dayOfWeek\": 1, \"startTime\": \"09:00\", \"endTime\": \"17:00\" },\n    { \"dayOfWeek\": 3, \"startTime\": \"10:00\", \"endTime\": \"18:00\" }\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technician/availability",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technician",
+                                "availability"
+                            ]
+                        },
+                        "description": "**Who can call this:** TECHNICIAN only. Replaces the ENTIRE weekly schedule every time (not additive) — send the complete set of slots you want. `dayOfWeek`: 0=Sunday...6=Saturday. Times in 24h `HH:mm`."
+                    }
+                },
+                {
+                    "name": "Get All Technicians (public)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technicians?page=1&limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technicians"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "searchTerm",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "**Who can call this:** anyone (public). Only returns users with `role: TECHNICIAN` and `activeStatus: ACTIVE`."
+                    }
+                },
+                {
+                    "name": "Get One Technician (public)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technicians/{{technicianId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technicians",
+                                "{{technicianId}}"
+                            ]
+                        },
+                        "description": "**Who can call this:** anyone (public). Includes the technician's active services and every review they've received."
                     }
                 },
                 {
@@ -409,7 +525,7 @@
         },
         {
             "name": "Categories",
-            "description": "# Categories\n\nThe category list customers and technicians browse and filter services by. Public read; admin-only create. All category operations live here — you don't jump to an Admin folder to create one.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `GET` | `/api/categories` | public | List all categories (page/limit/searchTerm). This is the one customers/technicians browse. |\n| `POST` | `/api/admin/categories` | ADMIN | Create a new category. 409 on duplicate name. Saves the new id as categoryId. |\n| `GET` | `/api/admin/categories` | ADMIN | Same list as public, exposed under the admin prefix for an admin dashboard. |",
+            "description": "# Categories\n\nEvery operation on the **category** resource. Public read; admin create/list. All here regardless of role.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `GET` | `/api/categories` | public | List all categories (the one customers/technicians browse). |\n| `POST` | `/api/admin/categories` | admin | Create a category; 409 on duplicate name. Saves categoryId. |\n| `GET` | `/api/admin/categories` | admin | Same list under the admin prefix. |",
             "item": [
                 {
                     "name": "Get All (public)",
@@ -519,10 +635,10 @@
         },
         {
             "name": "Services",
-            "description": "# Services\n\nThe individual jobs a technician offers under a category (e.g. “Kitchen sink repair”). Public read only in this build — services are created by the seed script; there is no create/update/delete API yet.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `GET` | `/api/services` | public | List services (page/limit, filter by categoryId, search by searchTerm). |\n| `GET` | `/api/services/:id` | public | Get one service by id. |",
+            "description": "# Services\n\nEvery operation on the **service** resource. Public read; a technician creates/updates/deletes their own service listings. Role noted per request — not a separate folder.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `GET` | `/api/services` | public | List active services (filter categoryId, searchTerm). |\n| `GET` | `/api/services/:id` | public | Get one service. |\n| `POST` | `/api/technician/services` | technician | Create a service listing; 404 if category missing. Saves serviceId. |\n| `PATCH` | `/api/technician/services/:id` | technician (owner) | Update own service; 403 if not the owner. |\n| `DELETE` | `/api/technician/services/:id` | technician (owner) | Delete own service (deactivates if it has bookings). |",
             "item": [
                 {
-                    "name": "Get All",
+                    "name": "Get All (public)",
                     "request": {
                         "method": "GET",
                         "header": [],
@@ -560,7 +676,7 @@
                     }
                 },
                 {
-                    "name": "Get One",
+                    "name": "Get One (public)",
                     "request": {
                         "method": "GET",
                         "header": [],
@@ -577,131 +693,9 @@
                         },
                         "description": "**Who can call this:** anyone (public)."
                     }
-                }
-            ]
-        },
-        {
-            "name": "Technicians",
-            "description": "# Technicians\n\nEverything about the technician as a resource — the public can browse them; a logged-in technician manages their own profile, weekly availability, and **their own service listings** (create/update/delete). Booking operations a technician performs live in the **Bookings** module.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `GET` | `/api/technicians` | public | List active technicians (page/limit/searchTerm). |\n| `GET` | `/api/technicians/:id` | public | Get one technician with their active services and all reviews. |\n| `PUT` | `/api/technician/profile` | TECHNICIAN | Update own skills / experienceYears / isAvailable. All fields optional. |\n| `PUT` | `/api/technician/availability` | TECHNICIAN | Replace the ENTIRE weekly schedule (not additive). dayOfWeek 0=Sun..6=Sat, times HH:mm. |\n| `POST` | `/api/technician/services` | TECHNICIAN | Create a service listing (title, price, categoryId). Saves serviceId. |\n| `PATCH` | `/api/technician/services/:id` | TECHNICIAN (owner) | Update own service; 403 if not the owner. |\n| `DELETE` | `/api/technician/services/:id` | TECHNICIAN (owner) | Delete own service (deactivates instead if it has bookings). |",
-            "item": [
-                {
-                    "name": "Get All",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/api/technicians?page=1&limit=10",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "api",
-                                "technicians"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "searchTerm",
-                                    "value": "",
-                                    "disabled": true
-                                }
-                            ]
-                        },
-                        "description": "**Who can call this:** anyone (public). Only returns users with `role: TECHNICIAN` and `activeStatus: ACTIVE`."
-                    }
                 },
                 {
-                    "name": "Get One (with reviews)",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/api/technicians/{{technicianId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "api",
-                                "technicians",
-                                "{{technicianId}}"
-                            ]
-                        },
-                        "description": "**Who can call this:** anyone (public). Includes the technician's active services and every review they've received."
-                    }
-                },
-                {
-                    "name": "Update My Profile (technician)",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{accessToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"skills\": [\"plumbing\", \"pipe fitting\"],\n  \"experienceYears\": 8,\n  \"isAvailable\": true\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/api/technician/profile",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "api",
-                                "technician",
-                                "profile"
-                            ]
-                        },
-                        "description": "**Who can call this:** TECHNICIAN only. All fields optional — send only what changes."
-                    }
-                },
-                {
-                    "name": "Update My Availability (technician)",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{accessToken}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"slots\": [\n    { \"dayOfWeek\": 1, \"startTime\": \"09:00\", \"endTime\": \"17:00\" },\n    { \"dayOfWeek\": 3, \"startTime\": \"10:00\", \"endTime\": \"18:00\" }\n  ]\n}"
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/api/technician/availability",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "api",
-                                "technician",
-                                "availability"
-                            ]
-                        },
-                        "description": "**Who can call this:** TECHNICIAN only. Replaces the ENTIRE weekly schedule every time (not additive) — send the complete set of slots you want. `dayOfWeek`: 0=Sunday...6=Saturday. Times in 24h `HH:mm`."
-                    }
-                },
-                {
-                    "name": "Create Service (technician)",
+                    "name": "Create (technician)",
                     "event": [
                         {
                             "listen": "test",
@@ -748,7 +742,7 @@
                     }
                 },
                 {
-                    "name": "Update Service (technician)",
+                    "name": "Update (technician)",
                     "request": {
                         "method": "PATCH",
                         "header": [
@@ -781,7 +775,7 @@
                     }
                 },
                 {
-                    "name": "Delete Service (technician)",
+                    "name": "Delete (technician)",
                     "request": {
                         "method": "DELETE",
                         "header": [
@@ -809,10 +803,10 @@
         },
         {
             "name": "Bookings",
-            "description": "# Bookings\n\nThe full lifecycle of a booking, for every role that touches it — the customer who creates and cancels it, the technician who accepts and drives it through the state machine, and the admin who oversees all of them. One folder, one place to test the whole flow.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/bookings` | CUSTOMER | Create a booking for a service + time. Technician is derived from the service. Saves bookingId. |\n| `GET` | `/api/bookings` | CUSTOMER | List the logged-in customer's own bookings (page/limit/status). |\n| `GET` | `/api/bookings/:id` | CUSTOMER (owner) | Get one of the customer's own bookings. |\n| `PATCH` | `/api/bookings/:id/cancel` | CUSTOMER (owner) | Cancel while REQUESTED/ACCEPTED/PAID; 400 once IN_PROGRESS or later. |\n| `GET` | `/api/technician/bookings` | TECHNICIAN | List bookings assigned to the logged-in technician (page/limit/status). |\n| `PATCH` | `/api/technician/bookings/:id` | TECHNICIAN (assigned) | Drive the state machine: REQUESTED→ACCEPTED/DECLINED, PAID→IN_PROGRESS, IN_PROGRESS→COMPLETED. |\n| `GET` | `/api/admin/bookings` | ADMIN | List every booking in the system regardless of owner (page/limit/status). |",
+            "description": "# Bookings\n\nEvery operation on the **booking** resource, for every role that touches it. `List Mine (customer)` = the caller's own bookings as a customer; `List Assigned (technician)` = bookings assigned to the caller as technician; `List All (admin)` = every booking platform-wide.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/bookings` | customer | Create a booking; technician derived from the service. Saves bookingId. |\n| `GET` | `/api/bookings` | customer | List the caller's own bookings. |\n| `GET` | `/api/bookings/:id` | customer (owner) | Get one of the caller's own bookings. |\n| `PATCH` | `/api/bookings/:id/cancel` | customer (owner) | Cancel before IN_PROGRESS. |\n| `GET` | `/api/technician/bookings` | technician | List bookings assigned to the caller. |\n| `PATCH` | `/api/technician/bookings/:id` | technician (assigned) | Drive the state machine: accept/decline/start/complete. |\n| `GET` | `/api/admin/bookings` | admin | List every booking platform-wide. |",
             "item": [
                 {
-                    "name": "Create",
+                    "name": "Create (customer)",
                     "event": [
                         {
                             "listen": "test",
@@ -858,7 +852,7 @@
                     }
                 },
                 {
-                    "name": "Get All (mine)",
+                    "name": "List Mine (customer)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -896,7 +890,7 @@
                     }
                 },
                 {
-                    "name": "Get One",
+                    "name": "Get One (customer)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -920,7 +914,7 @@
                     }
                 },
                 {
-                    "name": "Cancel",
+                    "name": "Cancel (customer)",
                     "request": {
                         "method": "PATCH",
                         "header": [
@@ -945,7 +939,7 @@
                     }
                 },
                 {
-                    "name": "Get My Bookings (technician)",
+                    "name": "List Assigned (technician)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -1017,7 +1011,7 @@
                     }
                 },
                 {
-                    "name": "Get All (admin)",
+                    "name": "List All (admin)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -1059,10 +1053,10 @@
         },
         {
             "name": "Payments",
-            "description": "# Payments\n\nPaying for an accepted booking via Stripe Checkout, and reading payment records. The confirm endpoint is Stripe's webhook — included for reference, not for hand-firing.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/payments/create` | CUSTOMER (owner) | Open a real Stripe test checkout for an ACCEPTED booking. Returns checkoutUrl, saves paymentId. |\n| `POST` | `/api/payments/confirm` | Stripe (webhook) | Signed webhook Stripe calls after payment; moves the booking to PAID. Not callable by hand. |\n| `GET` | `/api/payments` | CUSTOMER | List the customer's own payments (page/limit/status). |\n| `GET` | `/api/payments/:id` | CUSTOMER (owner) | Get one payment the customer owns. |",
+            "description": "# Payments\n\nEvery operation on the **payment** resource. Paying for an accepted booking via Stripe, plus reading payment records.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/payments/create` | customer (owner) | Open a Stripe checkout for an ACCEPTED booking. Returns checkoutUrl, saves paymentId. |\n| `POST` | `/api/payments/confirm` | stripe (webhook) | Signed webhook Stripe calls after payment; moves booking to PAID. |\n| `GET` | `/api/payments` | customer | List the caller's own payments. |\n| `GET` | `/api/payments/:id` | customer (owner) | Get one payment the caller owns. |",
             "item": [
                 {
-                    "name": "Create (Stripe Checkout)",
+                    "name": "Create (customer)",
                     "event": [
                         {
                             "listen": "test",
@@ -1109,7 +1103,7 @@
                     }
                 },
                 {
-                    "name": "Confirm (Stripe Webhook)",
+                    "name": "Confirm (stripe webhook)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -1141,7 +1135,7 @@
                     }
                 },
                 {
-                    "name": "Get All (mine)",
+                    "name": "List Mine (customer)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -1179,7 +1173,7 @@
                     }
                 },
                 {
-                    "name": "Get One",
+                    "name": "Get One (customer)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -1206,10 +1200,10 @@
         },
         {
             "name": "Reviews",
-            "description": "# Reviews\n\nA customer's review of a completed booking. One review per booking.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/reviews` | CUSTOMER (owner) | Leave a 1–5 rating + comment on a COMPLETED booking. 409 on a second review for the same booking. |",
+            "description": "# Reviews\n\nEvery operation on the **review** resource. A customer reviews a completed booking; one review per booking.\n\n| Method | Path | Who can call | What it does |\n|---|---|---|---|\n| `POST` | `/api/reviews` | customer (owner) | Leave a 1–5 rating + comment on a COMPLETED booking. 409 on a second review. |",
             "item": [
                 {
-                    "name": "Create",
+                    "name": "Create (customer)",
                     "request": {
                         "method": "POST",
                         "header": [
