@@ -5,9 +5,9 @@ export interface IUpdateTechnicianProfile {
 }
 
 export interface IAvailabilitySlotInput {
-    dayOfWeek: number;
-    startTime: string;
-    endTime: string;
+    date: string; // "YYYY-MM-DD"
+    startTime: string; // 12-hour "HH:mm AM/PM", e.g. "09:00 AM"
+    endTime: string; // 12-hour "HH:mm AM/PM", e.g. "05:00 PM"
 }
 
 export interface IUpdateAvailability {

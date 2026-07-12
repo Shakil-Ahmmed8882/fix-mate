@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseAmPmTo24 } from "../../utils/time.js";
 
 export const updateTechnicianProfileValidation = z.object({
     skills: z.array(z.string()).optional(),
@@ -6,16 +7,40 @@ export const updateTechnicianProfileValidation = z.object({
     isAvailable: z.boolean().optional(),
 });
 
-const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+// 12-hour clock, e.g. "09:00 AM" / "05:30 PM". The hour group (0[1-9]|1[0-2])
+// plus the mandatory " AM/PM" suffix makes malformed inputs like "017:00" or
+// "13:00 PM" impossible.
+const timePattern12 = /^(0[1-9]|1[0-2]):[0-5]\d (AM|PM)$/;
+const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+// A YYYY-MM-DD string that also names a real calendar day (rejects 2026-02-30,
+// 2026-13-01, etc.) — round-tripping through Date and comparing back catches
+// anything that overflowed.
+const isRealCalendarDate = (value: string): boolean => {
+    const parts = value.split("-").map(Number);
+    const [y, m, d] = parts as [number, number, number];
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+};
 
 export const updateAvailabilityValidation = z.object({
-    slots: z.array(
-        z.object({
-            dayOfWeek: z.number().int().min(0, "dayOfWeek must be between 0 and 6").max(6, "dayOfWeek must be between 0 and 6"),
-            startTime: z.string().regex(timePattern, "startTime must be in HH:mm 24-hour format"),
-            endTime: z.string().regex(timePattern, "endTime must be in HH:mm 24-hour format"),
-        })
-    ),
+    slots: z
+        .array(
+            z
+                .object({
+                    date: z
+                        .string()
+                        .regex(datePattern, "date must be in YYYY-MM-DD format")
+                        .refine(isRealCalendarDate, "date is not a real calendar date"),
+                    startTime: z.string().regex(timePattern12, 'startTime must be like "09:00 AM"'),
+                    endTime: z.string().regex(timePattern12, 'endTime must be like "05:00 PM"'),
+                })
+                .refine((slot) => parseAmPmTo24(slot.endTime) > parseAmPmTo24(slot.startTime), {
+                    message: "endTime must be after startTime",
+                    path: ["endTime"],
+                })
+        )
+        .min(1, "Provide at least one slot (this replaces all existing slots)."),
 });
 
 export const updateBookingStatusValidation = z.object({
