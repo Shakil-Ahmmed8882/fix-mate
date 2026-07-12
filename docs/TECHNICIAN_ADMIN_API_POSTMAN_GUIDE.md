@@ -40,20 +40,28 @@ All routes below require `auth(Role.TECHNICIAN)` — the accessToken cookie/head
 ```
 All fields optional — send only what you want to change. **Expected 200:** the updated `TechnicianProfile`.
 
+### `GET /api/technician/availability`
+Returns the logged-in technician's own slots, sorted by date then start time. Each time is rich: `{ display, hour, minute, period, time24 }`.
+
 ### `PUT /api/technician/availability`
-This **replaces the technician's entire weekly schedule** in one call (not additive) — send the complete set of slots you want, every time.
+This **replaces the technician's entire availability** in one call (not additive) — send the complete set of slots you want, every time. Each slot is a **single calendar day**.
 ```json
 {
   "slots": [
-    { "dayOfWeek": 1, "startTime": "09:00", "endTime": "17:00" },
-    { "dayOfWeek": 3, "startTime": "10:00", "endTime": "18:00" }
+    { "date": "2026-08-15", "startTime": "09:00 AM", "endTime": "05:00 PM" },
+    { "date": "2026-08-16", "startTime": "10:00 AM", "endTime": "02:30 PM" }
   ]
 }
 ```
-`dayOfWeek`: 0 = Sunday … 6 = Saturday. Times must be `HH:mm` 24-hour format, and `startTime` must be earlier than `endTime`.
+`date`: `YYYY-MM-DD`. Times are **12-hour** `"hh:mm AM/PM"` (e.g. `"09:00 AM"`), and `endTime` must be after `startTime` on that day.
 
-**Expected 400** for `dayOfWeek` outside 0–6, malformed times, or `startTime >= endTime`.
-**Expected 200:** the full new list of `AvailabilitySlot` rows (old ones are deleted, these are the only ones that now exist).
+**Expected 400:**
+- Malformed date/time (`"017:00"`, `"13:00 PM"`, `2026-02-30`) → `"Validation failed"` with the offending field.
+- A slot dated before today → `"Slot date is in the past"`, listing the slot in readable form.
+- Two slots overlapping on the same date → `"Slot overlaps with an existing slot"`, with `errorDetails` naming BOTH colliding slots (e.g. `{ "slot": "Aug 15, 2026 09:00 AM–05:00 PM", "conflictsWith": "Aug 15, 2026 04:00 PM–06:00 PM" }`). Touching slots (one ends 12:00 PM, next starts 12:00 PM) do NOT conflict.
+- Empty `slots` array (at least one required).
+
+**Expected 200:** the full new list of slots in rich form (old ones deleted, these are the only ones that now exist).
 
 ### `GET /api/technician/bookings`
 Optional query params: `?status=REQUESTED&page=1&limit=10`

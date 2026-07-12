@@ -109,7 +109,7 @@ Users **select their role at registration** (`CUSTOMER` or `TECHNICIAN`). `ADMIN
 - Register and login as a technician
 - Create and update service profile (skills, experience, availability flag)
 - Create, update, and delete own service listings (title, price, category)
-- Set availability time slots (weekly schedule)
+- Set availability time slots (dated, single-day, 12-hour AM/PM; no overlaps)
 - View incoming bookings
 - Accept or decline bookings
 - Mark jobs as in-progress or completed
@@ -186,7 +186,8 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 | Method | Endpoint | Who | Description |
 |---|---|---|---|
 | `PUT` | `/api/technician/profile` | Technician | Update technician profile (skills, experience, availability) |
-| `PUT` | `/api/technician/availability` | Technician | Replace the weekly availability slots |
+| `GET` | `/api/technician/availability` | Technician | List own availability slots (rich date/time) |
+| `PUT` | `/api/technician/availability` | Technician | Replace all availability slots (dated, 12h AM/PM; rejects past dates & overlaps) |
 | `POST` | `/api/technician/services` | Technician | Create a service the technician offers |
 | `PATCH` | `/api/technician/services/:id` | Technician (owner) | Update own service (title, price, category, active) |
 | `DELETE` | `/api/technician/services/:id` | Technician (owner) | Delete own service (deactivates if it has bookings) |
@@ -222,7 +223,7 @@ All endpoints are prefixed with `/api`. Protected routes require `Authorization:
 | **Users** | User information, authentication details (hashed password), `role`, and `activeStatus` |
 | **Profiles** | Per-user bio / photo / address, kept separate from login credentials (1:1 with Users) |
 | **TechnicianProfiles** | Technician-specific info — skills, experience years, availability flag (1:1 with Users) |
-| **AvailabilitySlots** | A technician's weekly schedule (dayOfWeek, startTime, endTime) — N per profile |
+| **AvailabilitySlots** | A technician's dated availability windows (date, startTime, endTime) — one calendar day each, N per profile |
 | **Categories** | Service categories (plumbing, electrical, cleaning, painting, …) |
 | **Services** | Specific services offered by a technician under a category (title, price, isActive) |
 | **Bookings** | Job bookings between a customer and technician for a service (with status + scheduledAt) |
@@ -265,7 +266,7 @@ erDiagram
     AvailabilitySlot {
         string id PK
         string technicianProfileId FK
-        int dayOfWeek "0=Sun..6=Sat"
+        date date "one calendar day"
         string startTime
         string endTime
     }
@@ -342,7 +343,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     A([Register / Login as Technician]) --> B[Set up profile: skills, experience]
-    B --> C[Set weekly availability slots]
+    B --> C[Set dated availability slots]
     C --> S[Create a service listing: title, price, category]
     S --> D[View incoming bookings]
     D --> E{Accept or<br/>decline?}

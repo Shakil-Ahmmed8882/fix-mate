@@ -4,5 +4,5 @@ Public browsing of technicians. A technician's own profile & availability manage
 
 | Method | Path | Who | Payload | What it does |
 |---|---|---|---|---|
-| `GET` | `/api/technicians` | public | — (query: page, limit, searchTerm) | List active technicians. |
-| `GET` | `/api/technicians/:id` | public | — | Get one technician with services and reviews. |
+| `GET` | `/api/technicians` | public | — (query: page, limit, searchTerm) | List active technicians (lean — no availability slots). |
+| `GET` | `/api/technicians/:id` | public | — | Get one technician with services, reviews, and `technicianProfile.availabilitySlots` (rich date/time form). |

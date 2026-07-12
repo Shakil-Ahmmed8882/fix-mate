@@ -361,6 +361,30 @@
                     }
                 },
                 {
+                    "name": "Get Availability (technician)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/technician/availability",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "technician",
+                                "availability"
+                            ]
+                        },
+                        "description": "**Who can call this:** TECHNICIAN only.\n\nReturns the logged-in technician's own availability slots, sorted by date then start time. Each time comes back rich: `{ display: \"09:00 AM\", hour: 9, minute: 0, period: \"AM\", time24: \"09:00\" }`."
+                    }
+                },
+                {
                     "name": "Update Availability (technician)",
                     "request": {
                         "method": "PUT",
@@ -376,7 +400,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"slots\": [\n    { \"dayOfWeek\": 1, \"startTime\": \"09:00\", \"endTime\": \"17:00\" },\n    { \"dayOfWeek\": 3, \"startTime\": \"10:00\", \"endTime\": \"18:00\" }\n  ]\n}"
+                            "raw": "{\n  \"slots\": [\n    { \"date\": \"2026-08-15\", \"startTime\": \"09:00 AM\", \"endTime\": \"05:00 PM\" },\n    { \"date\": \"2026-08-16\", \"startTime\": \"10:00 AM\", \"endTime\": \"02:30 PM\" }\n  ]\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/technician/availability",
@@ -389,7 +413,7 @@
                                 "availability"
                             ]
                         },
-                        "description": "**Who can call this:** TECHNICIAN only. Replaces the ENTIRE weekly schedule every time (not additive) — send the complete set of slots you want. `dayOfWeek`: 0=Sunday...6=Saturday. Times in 24h `HH:mm`."
+                        "description": "**Who can call this:** TECHNICIAN only.\n\nReplaces the technician's ENTIRE availability with the slots you send (not additive). Each slot is a **single calendar day**:\n- `date`: `\"YYYY-MM-DD\"`.\n- `startTime` / `endTime`: **12-hour** `\"hh:mm AM/PM\"` (e.g. `\"09:00 AM\"`, `\"05:30 PM\"`). Malformed values like `\"017:00\"` or `\"13:00 PM\"` are rejected. `endTime` must be after `startTime` on that day.\n\n**Rules enforced:**\n- Past dates are rejected (`400 \"Slot date is in the past\"`, listing the offending slot in readable form).\n- No two slots may overlap on the same date. On conflict → `400 \"Slot overlaps with an existing slot\"` and `errorDetails` names BOTH colliding slots, e.g. `{ \"slot\": \"Aug 15, 2026 09:00 AM–05:00 PM\", \"conflictsWith\": \"Aug 15, 2026 04:00 PM–06:00 PM\" }`.\n- Touching slots (one ends 12:00 PM, next starts 12:00 PM) do NOT conflict.\n- At least one slot is required (an empty array is rejected).\n\nThe response echoes each slot in a rich form: `startTime: { display, hour, minute, period, time24 }` so a frontend can populate dropdowns without re-parsing."
                     }
                 },
                 {
