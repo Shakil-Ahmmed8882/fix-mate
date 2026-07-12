@@ -16,17 +16,17 @@ model TechnicianProfile {
 }
 
 model AvailabilitySlot {
-  id                  String @id @default(uuid())
+  id                  String   @id @default(uuid())
   technicianProfileId String
-  dayOfWeek           Int // 0 = Sunday ... 6 = Saturday
-  startTime           String // "09:00"
-  endTime             String // "17:00"
+  date                DateTime @db.Date // a specific calendar day, e.g. 2026-08-15
+  startTime           String // canonical 24h "HH:mm", e.g. "09:00" (input is 12h "09:00 AM")
+  endTime             String // canonical 24h "HH:mm", e.g. "17:00"
 
   technicianProfile TechnicianProfile @relation(fields: [technicianProfileId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([technicianProfileId])
+  @@index([technicianProfileId, date])
   @@map("availability_slots")
 }
